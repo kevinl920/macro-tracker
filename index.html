@@ -631,7 +631,8 @@
                 // 1. Send the image and prompt to YOUR Google Apps Script proxy
                 const response = await fetch(GOOGLE_SHEETS_URL, {
                     method: "POST",
-                    headers: { "Content-Type": "application/json" },
+                    // Fix: Changed from application/json to text/plain to bypass CORS errors
+                    headers: { "Content-Type": "text/plain;charset=utf-8" },
                     body: JSON.stringify({
                         action: "analyze",
                         prompt: prompt,
@@ -675,7 +676,9 @@
                 // 4. Send a separate request to save it to the Spreadsheet
                 try {
                     fetch(GOOGLE_SHEETS_URL, {
-                        method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" },
+                        method: "POST", mode: "no-cors", 
+                        // Fix: Changed here as well just to be safe
+                        headers: { "Content-Type": "text/plain;charset=utf-8" },
                         body: JSON.stringify({ 
                             action: "add", 
                             id: uniqueId, 
@@ -715,7 +718,9 @@
 
             try {
                 fetch(GOOGLE_SHEETS_URL, {
-                    method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" },
+                    method: "POST", mode: "no-cors", 
+                    // Fix: Changed here to match
+                    headers: { "Content-Type": "text/plain;charset=utf-8" },
                     body: JSON.stringify({ action: "delete", id: docId })
                 });
             } catch(e) {}
