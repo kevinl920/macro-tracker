@@ -351,26 +351,29 @@
         </div>
     </main>
 
-    <!-- Bottom Navigation -->
-    <nav class="fixed bottom-0 left-0 w-full bg-white/95 dark:bg-gray-900/95 backdrop-blur-lg border-t border-gray-200 dark:border-gray-800 z-50 transition-colors duration-300" style="padding-bottom: env(safe-area-inset-bottom);">
-        <div class="flex justify-around items-center h-16">
-            <button class="nav-item active flex flex-col items-center gap-1 w-16 text-gray-400 dark:text-gray-500 transition-colors" data-target="tab-log">
-                <i class="ph-fill ph-plus-circle text-2xl"></i>
-                <span class="text-[10px] font-bold">Log</span>
-            </button>
-            <button class="nav-item flex flex-col items-center gap-1 w-16 text-gray-400 dark:text-gray-500 transition-colors" data-target="tab-dash">
-                <i class="ph-fill ph-chart-pie-slice text-2xl"></i>
-                <span class="text-[10px] font-bold">Dash</span>
-            </button>
-            <button class="nav-item flex flex-col items-center gap-1 w-16 text-gray-400 dark:text-gray-500 transition-colors" data-target="tab-history">
-                <i class="ph-fill ph-clock-counter-clockwise text-2xl"></i>
-                <span class="text-[10px] font-bold">History</span>
-            </button>
-            <button class="nav-item flex flex-col items-center gap-1 w-16 text-gray-400 dark:text-gray-500 transition-colors" data-target="tab-settings">
-                <i class="ph-fill ph-gear text-2xl"></i>
-                <span class="text-[10px] font-bold">Settings</span>
-            </button>
-        </div>
+    <!-- THE NAVIGATION BAR (Sleek Icon-Only Version) -->
+    <nav class="fixed bottom-0 left-0 w-full bg-white border-t border-gray-100 flex justify-around pb-8 pt-4 px-4 z-50">
+        
+        <!-- Log Tab -->
+        <button onclick="switchTab('log')" id="nav-log" class="flex flex-col items-center justify-center text-gray-400 transition-colors">
+            <i class="ph ph-plus-circle text-3xl"></i>
+        </button>
+    
+        <!-- Dash Tab -->
+        <button onclick="switchTab('dash')" id="nav-dash" class="flex flex-col items-center justify-center text-gray-400 transition-colors">
+            <i class="ph ph-chart-pie-slice text-3xl"></i>
+        </button>
+    
+        <!-- History Tab -->
+        <button onclick="switchTab('history')" id="nav-history" class="flex flex-col items-center justify-center text-gray-400 transition-colors">
+            <i class="ph ph-clock-counter-clockwise text-3xl"></i>
+        </button>
+    
+        <!-- Settings Tab -->
+        <button onclick="switchTab('settings')" id="nav-settings" class="flex flex-col items-center justify-center text-gray-400 transition-colors">
+            <i class="ph ph-gear text-3xl"></i>
+        </button>
+        
     </nav>
 
     <!-- App Script: Reverted safely back to Local Offline Storage -->
