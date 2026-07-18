@@ -16,7 +16,14 @@
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     
     <style>
-        body { -webkit-tap-highlight-color: transparent; }
+        /* Apple Safari Fix for Floating Bottom Bars */
+        html { height: -webkit-fill-available; }
+        body { 
+            -webkit-tap-highlight-color: transparent; 
+            min-height: 100vh;
+            min-height: -webkit-fill-available;
+        }
+        
         .tab-content { display: none; }
         .tab-content.active { display: block; animation: fadeIn 0.2s ease-in-out; }
         .nav-item.active { color: #3b82f6; }
