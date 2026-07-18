@@ -614,118 +614,95 @@
         };
 
         document.getElementById('analyzeBtn').onclick = async () => {
-            const foodName = document.getElementById('foodName').value.trim();
-            const description = document.getElementById('foodDesc').value.trim();
-            const analyzeBtn = document.getElementById('analyzeBtn');
+                const foodName = document.getElementById('foodName').value.trim();
+                const description = document.getElementById('foodDesc').value.trim();
+                const analyzeBtn = document.getElementById('analyzeBtn');
 
-            if (!base64Image && !foodName && !description) {
-                return showToast("Please type something or snap a photo!", "error");
-            }
-
-            try {
-                analyzeBtn.disabled = true;
-                analyzeBtn.innerHTML = '<i class="ph ph-spinner animate-spin text-xl"></i> Analyzing...';
-                
-                const prompt = `Analyze this food. Name: ${foodName || 'Unknown'}. Description: ${description || 'None'}. If no image is provided and portion size isn't explicitly specified, assume a standard serving. Provide realistic estimates.`;
-                
-                // 1. Send the image and prompt to YOUR Google Apps Script proxy
-                const response = await fetch(GOOGLE_SHEETS_URL, {
-                    method: "POST",
-                    // Fix: Changed from application/json to text/plain to bypass CORS errors
-                    headers: { "Content-Type": "text/plain;charset=utf-8" },
-                    body: JSON.stringify({
-                        action: "analyze",
-                        prompt: prompt,
-                        image: base64Image,
-                        mimeType: imageMimeType
-                    })
-                });
-                
-                if(!response.ok) throw new Error("Network Error");
-                const result = await response.json();
-                
-                // 2. Handle errors returned by Apps Script
-                if (result.status === "error") {
-                     throw new Error(result.message);
+                if (!base64Image && !foodName && !description) {
+                    return window.showToast("Please type something or snap a photo!", "error");
                 }
 
-                // 3. Extract the data exactly as before
-                const rawData = result.data;
-                const isoDate = new Date().toISOString();
-                const uniqueId = Date.now().toString();
-
-                const data = {
-                    foodName: rawData.foodName,
-                    calories: round1(rawData.calories),
-                    protein: round1(rawData.protein),
-                    carbs: round1(rawData.carbs),
-                    fat: round1(rawData.fat),
-                    fiber: round1(rawData.fiber),
-                    sugar: round1(rawData.sugar)
-                };
-
-                const newEntry = { id: uniqueId, ...data, dateLogged: isoDate, description: description || "" };
-
-                // Save Locally
-                allFoods.push(newEntry);
-                localStorage.setItem('mt_allFoods', JSON.stringify(allFoods));
-                
-                updateDashboardUI();
-                renderHistory();
-
-                // 4. Send a separate request to save it to the Spreadsheet
                 try {
-                    fetch(GOOGLE_SHEETS_URL, {
-                        method: "POST", mode: "no-cors", 
-                        // Fix: Changed here as well just to be safe
-                        headers: { "Content-Type": "text/plain;charset=utf-8" },
-                        body: JSON.stringify({ 
-                            action: "add", 
-                            id: uniqueId, 
-                            user: userGoals.displayName || "Anonymous",
-                            ...data, 
-                            description, 
-                            date: new Date(isoDate).toLocaleDateString(),
-                            time: new Date(isoDate).toLocaleTimeString()
+                    analyzeBtn.disabled = true;
+                    analyzeBtn.innerHTML = '<i class="ph ph-spinner animate-spin text-xl"></i> Analyzing...';
+                    
+                    const prompt = `Analyze this food. Name: ${foodName || 'Unknown'}. Description: ${description || 'None'}. If no image is provided and portion size isn't explicitly specified, assume a standard serving. Provide realistic estimates.`;
+                    
+                    // 1. Send the request to your Google Apps Script Proxy
+                    // Notice we REMOVED the 'headers' block entirely to bypass Safari CORS blocks
+                    const response = await fetch(GOOGLE_SHEETS_URL, {
+                        method: "POST",
+                        body: JSON.stringify({
+                            action: "analyze",
+                            prompt: prompt,
+                            image: base64Image,
+                            mimeType: imageMimeType
                         })
                     });
-                } catch(e) {}
 
-                window.showToast(`Logged ${data.foodName} (${data.calories} kcal)`, "success");
-                document.getElementById('imagePreview').style.backgroundImage = "none";
-                document.getElementById('cameraIconContainer').classList.remove('hidden');
-                document.getElementById('foodName').value = "";
-                document.getElementById('foodDesc').value = "";
-                base64Image = null; imageMimeType = null;
-                window.scrollTo({ top: 0, behavior: 'smooth' });
+                    if (!response.ok) throw new Error("Network Error: " + response.statusText);
+                    
+                    const result = await response.json();
+                    
+                    // 2. Check if the Apps Script returned an error
+                    if (result.status === "error") throw new Error(result.message);
 
-            } catch (err) {
-                showToast("Error analyzing food: " + err.message, "error");
-            } finally {
-                analyzeBtn.disabled = false;
-                analyzeBtn.innerHTML = '<i class="ph ph-sparkle text-xl"></i> Analyze & Log';
-            }
-        };
+                    const rawData = result.data;
+                    const isoDate = new Date().toISOString();
+                    const uniqueId = Date.now().toString();
 
-        window.deleteFood = async (docId, event) => {
-            event.stopPropagation(); 
-            if(!confirm("Delete this entry?")) return;
-            
-            allFoods = allFoods.filter(f => f.id !== docId);
-            localStorage.setItem('mt_allFoods', JSON.stringify(allFoods));
-            updateDashboardUI();
-            renderHistory();
+                    const data = {
+                        foodName: rawData.foodName,
+                        calories: Math.round(rawData.calories * 10) / 10,
+                        protein: Math.round(rawData.protein * 10) / 10,
+                        carbs: Math.round(rawData.carbs * 10) / 10,
+                        fat: Math.round(rawData.fat * 10) / 10,
+                        fiber: Math.round(rawData.fiber * 10) / 10,
+                        sugar: Math.round(rawData.sugar * 10) / 10
+                    };
 
-            try {
-                fetch(GOOGLE_SHEETS_URL, {
-                    method: "POST", mode: "no-cors", 
-                    // Fix: Changed here to match
-                    headers: { "Content-Type": "text/plain;charset=utf-8" },
-                    body: JSON.stringify({ action: "delete", id: docId })
-                });
-            } catch(e) {}
-            showToast("Entry deleted", "success");
-        };
+                    const newEntry = { id: uniqueId, ...data, dateLogged: isoDate, description: description || "" };
+
+                    // 3. Save to local storage for the dashboard
+                    allFoods.push(newEntry);
+                    localStorage.setItem('mt_allFoods', JSON.stringify(allFoods));
+                    
+                    updateDashboardUI();
+                    renderHistory();
+
+                    // 4. Send the background save to Google Sheets
+                    try {
+                        fetch(GOOGLE_SHEETS_URL, {
+                            method: "POST", 
+                            mode: "no-cors", 
+                            body: JSON.stringify({ 
+                                action: "add", 
+                                id: uniqueId, 
+                                ...data, 
+                                description: description,
+                                date: new Date(isoDate).toLocaleDateString(),
+                                time: new Date(isoDate).toLocaleTimeString(),
+                                user: window.userGoals.displayName || "Anonymous"
+                            })
+                        });
+                    } catch(e) { console.error("Sheet backup failed", e); }
+
+                    window.showToast(`Logged ${data.foodName} (${data.calories} kcal)`, "success");
+                    
+                    document.getElementById('foodName').value = "";
+                    document.getElementById('foodDesc').value = "";
+                    document.getElementById('imagePreview').style.backgroundImage = "none";
+                    document.getElementById('cameraIconContainer').classList.remove('hidden');
+                    base64Image = null; imageMimeType = null;
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+                } catch (err) {
+                    window.showToast("Error: " + err.message, "error");
+                } finally {
+                    analyzeBtn.disabled = false;
+                    analyzeBtn.innerHTML = '<i class="ph ph-sparkle text-xl"></i> Analyze & Log';
+                }
+            };
 
         function getTodayFoods() {
             const todayStr = new Date().toDateString();
