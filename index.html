@@ -146,6 +146,130 @@
                 </button>
             </div>
         </div>
+
+        <!-- ==================== TAB 2: DASHBOARD ==================== -->
+        <div id="tab-dash" class="tab-content">
+            <div class="p-4 space-y-4">
+                <div class="bg-white dark:bg-gray-900 p-4 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800">
+                    <h3 class="font-bold text-gray-900 dark:text-white mb-4">Macro Distribution</h3>
+                    <div class="relative w-full aspect-square max-h-48 mx-auto">
+                        <canvas id="macroChart"></canvas>
+                    </div>
+                    <div class="flex justify-around mt-4">
+                        <div class="text-center"><p class="text-xs text-gray-500">Protein</p><p class="font-bold text-rose-500"><span id="dashP">0</span>g</p></div>
+                        <div class="text-center"><p class="text-xs text-gray-500">Carbs</p><p class="font-bold text-amber-500"><span id="dashC">0</span>g</p></div>
+                        <div class="text-center"><p class="text-xs text-gray-500">Fat</p><p class="font-bold text-emerald-500"><span id="dashF">0</span>g</p></div>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-white dark:bg-gray-900 p-4 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800 text-center flex flex-col items-center justify-center">
+                        <h3 class="text-xs font-bold text-gray-500 uppercase mb-2">Fiber</h3>
+                        <svg class="w-16 h-16 transform -rotate-90" viewBox="0 0 36 36">
+                            <path class="text-gray-100 dark:text-gray-800" stroke-width="3" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                            <path id="fiberCircle" class="text-purple-500 transition-all duration-1000 ease-out" stroke-dasharray="0, 100" stroke-width="3" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                        </svg>
+                        <p class="font-bold mt-2"><span id="fiberEaten">0</span> / <span id="fiberGoal">0</span>g</p>
+                    </div>
+                    <div class="bg-white dark:bg-gray-900 p-4 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800 text-center flex flex-col items-center justify-center">
+                        <h3 class="text-xs font-bold text-gray-500 uppercase mb-2">Streak</h3>
+                        <div class="text-4xl mb-1">🔥</div>
+                        <p class="font-black text-xl"><span id="streakCountText">0</span> Days</p>
+                    </div>
+                </div>
+                <div class="bg-white dark:bg-gray-900 p-4 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800">
+                    <div class="flex justify-between items-end mb-2">
+                        <h3 class="font-bold text-gray-900 dark:text-white">Water Tracker</h3>
+                        <p class="text-sm font-bold text-blue-500"><span id="waterCount">0</span> / <span id="waterGoalText">8</span> cups</p>
+                    </div>
+                    <div class="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-4 mb-4 overflow-hidden border border-gray-200 dark:border-gray-700">
+                        <div id="waterBar" class="bg-blue-400 h-4 rounded-full transition-all duration-500" style="width: 0%"></div>
+                    </div>
+                    <div class="flex justify-center gap-4">
+                        <button onclick="addWater(1)" class="w-12 h-12 bg-blue-50 dark:bg-blue-900/30 text-blue-500 rounded-2xl flex items-center justify-center text-xl active:scale-90 transition-transform"><i class="ph-fill ph-drop"></i></button>
+                        <button onclick="addWater(-1)" class="w-12 h-12 bg-gray-50 dark:bg-gray-800 text-gray-400 rounded-2xl flex items-center justify-center text-xl active:scale-90 transition-transform"><i class="ph ph-minus"></i></button>
+                    </div>
+                </div>
+                <div class="bg-white dark:bg-gray-900 p-4 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800">
+                    <h3 class="font-bold text-gray-900 dark:text-white mb-4">7-Day Trend</h3>
+                    <div class="relative w-full h-40">
+                        <canvas id="weeklyChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== TAB 3: HISTORY ==================== -->
+        <div id="tab-history" class="tab-content">
+            <div id="historyList" class="p-4 space-y-3 pb-24"></div>
+        </div>
+
+        <!-- ==================== TAB 4: SETTINGS ==================== -->
+        <div id="tab-settings" class="tab-content">
+            <div class="p-4 space-y-6 pb-24">
+                <div class="bg-white dark:bg-gray-900 p-4 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800">
+                    <h3 class="font-bold text-gray-900 dark:text-white mb-2">Profile Name</h3>
+                    <div class="flex gap-2">
+                        <input type="text" id="setDisplayName" placeholder="Enter your name" class="flex-1 p-3 bg-gray-50 dark:bg-gray-800 rounded-xl outline-none text-gray-900 dark:text-white border border-transparent focus:border-blue-500">
+                        <button onclick="saveProfileName()" class="bg-blue-600 text-white px-4 rounded-xl font-bold active:scale-95 transition-transform">Save</button>
+                    </div>
+                </div>
+                <div class="bg-white dark:bg-gray-900 p-4 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800">
+                    <h3 class="font-bold text-gray-900 dark:text-white mb-4">Current Daily Goals</h3>
+                    <div class="grid grid-cols-4 gap-2 text-center text-sm">
+                        <div class="bg-gray-50 dark:bg-gray-800 p-2 rounded-xl"><p class="text-xs text-gray-500">Cals</p><p class="font-bold"><span id="setGoalCals">0</span></p></div>
+                        <div class="bg-rose-50 dark:bg-rose-900/20 p-2 rounded-xl"><p class="text-xs text-rose-500">Pro</p><p class="font-bold text-rose-600 dark:text-rose-400"><span id="setGoalP">0</span>g</p></div>
+                        <div class="bg-amber-50 dark:bg-amber-900/20 p-2 rounded-xl"><p class="text-xs text-amber-500">Carb</p><p class="font-bold text-amber-600 dark:text-amber-400"><span id="setGoalC">0</span>g</p></div>
+                        <div class="bg-emerald-50 dark:bg-emerald-900/20 p-2 rounded-xl"><p class="text-xs text-emerald-500">Fat</p><p class="font-bold text-emerald-600 dark:text-emerald-400"><span id="setGoalF">0</span>g</p></div>
+                    </div>
+                </div>
+                <div class="bg-white dark:bg-gray-900 p-4 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800">
+                    <h3 class="font-bold text-gray-900 dark:text-white mb-2">TDEE Auto-Calculator</h3>
+                    <p class="text-xs text-gray-500 mb-4">Enter data from Apple Health to instantly calculate your goals.</p>
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between"><span class="text-sm">Resting Energy (kcal)</span><input type="number" id="calcResting" class="w-24 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg text-center outline-none"></div>
+                        <div class="flex items-center justify-between"><span class="text-sm">Active Energy (kcal)</span><input type="number" id="calcActive" class="w-24 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg text-center outline-none"></div>
+                        <div class="flex items-center justify-between"><span class="text-sm">Weight (lbs)</span><input type="number" id="calcWeight" class="w-24 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg text-center outline-none"></div>
+                        <div class="flex items-center justify-between"><span class="text-sm">Goal</span>
+                            <select id="calcGoal" class="w-32 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg outline-none text-sm">
+                                <option value="-500">Lose Weight (-500)</option>
+                                <option value="0">Maintain</option>
+                                <option value="500">Build Muscle (+500)</option>
+                            </select>
+                        </div>
+                        <button id="recalcBtn" class="w-full bg-black dark:bg-white text-white dark:text-black font-bold py-3 rounded-xl mt-2 active:scale-95 transition-transform">Calculate & Set Goals</button>
+                    </div>
+                </div>
+                <div class="bg-white dark:bg-gray-900 p-4 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800">
+                    <h3 class="font-bold text-gray-900 dark:text-white mb-4">Manual Adjustment</h3>
+                    <div class="flex items-center justify-between mb-4"><span class="text-sm font-medium">Daily Calories</span><input type="number" id="manualCals" class="w-24 p-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-center outline-none font-bold"></div>
+                    <div class="flex items-center justify-between mb-6"><span class="text-sm font-medium">Daily Water (Cups)</span><input type="number" id="manualWater" class="w-24 p-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-center outline-none font-bold"></div>
+                    <div class="mb-2"><span class="text-sm font-medium">Macro Split</span></div>
+                    <div class="relative w-full h-8 mb-8">
+                        <div class="absolute top-1/2 -translate-y-1/2 w-full h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden flex" id="macroSliderTrack">
+                            <div id="macroBarP" class="h-full bg-rose-500 pointer-events-none" style="width: 30%"></div>
+                            <div id="macroBarC" class="h-full bg-amber-500 pointer-events-none" style="width: 40%"></div>
+                            <div id="macroBarF" class="h-full bg-emerald-500 pointer-events-none" style="width: 30%"></div>
+                        </div>
+                        <div id="macroThumb1" class="absolute top-1/2 -translate-y-1/2 w-6 h-6 bg-white border-2 border-gray-300 rounded-full shadow-md cursor-grab active:cursor-grabbing active:scale-110 transition-transform z-10" style="left: 30%; transform: translate(-50%, -50%);"></div>
+                        <div id="macroThumb2" class="absolute top-1/2 -translate-y-1/2 w-6 h-6 bg-white border-2 border-gray-300 rounded-full shadow-md cursor-grab active:cursor-grabbing active:scale-110 transition-transform z-10" style="left: 70%; transform: translate(-50%, -50%);"></div>
+                    </div>
+                    <div class="flex justify-between text-xs text-center mb-6">
+                        <div class="w-1/3"><p class="text-rose-500 font-bold mb-1">Protein</p><p class="font-bold text-lg"><span id="sliderValP">30</span>%</p><p class="text-gray-500" id="sliderGramP">150g</p></div>
+                        <div class="w-1/3"><p class="text-amber-500 font-bold mb-1">Carbs</p><p class="font-bold text-lg"><span id="sliderValC">40</span>%</p><p class="text-gray-500" id="sliderGramC">200g</p></div>
+                        <div class="w-1/3"><p class="text-emerald-500 font-bold mb-1">Fat</p><p class="font-bold text-lg"><span id="sliderValF">30</span>%</p><p class="text-gray-500" id="sliderGramF">67g</p></div>
+                    </div>
+                    <button id="saveManualBtn" class="w-full bg-black dark:bg-white text-white dark:text-black font-bold py-3 rounded-xl active:scale-95 transition-transform">Save Custom Split</button>
+                </div>
+                <div class="bg-white dark:bg-gray-900 p-4 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800">
+                    <h3 class="font-bold text-gray-900 dark:text-white mb-2">Data Backup</h3>
+                    <p class="text-xs text-gray-500 mb-4">Export your local storage code to move your data to a new device.</p>
+                    <div class="flex gap-2">
+                        <button onclick="exportData()" class="flex-1 bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 font-bold py-2 rounded-xl active:scale-95 transition-transform text-sm"><i class="ph ph-export"></i> Export</button>
+                        <button onclick="importData()" class="flex-1 bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 font-bold py-2 rounded-xl active:scale-95 transition-transform text-sm"><i class="ph ph-download"></i> Import</button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </main>
 
     <!-- Bottom Navigation -->
@@ -246,9 +370,6 @@
             document.getElementById('setGoalC').innerText = userGoals.c;
             document.getElementById('setGoalF').innerText = userGoals.f;
             document.getElementById('floatGoalCals').innerText = userGoals.cals;
-            document.getElementById('dashGoalP').innerText = userGoals.p;
-            document.getElementById('dashGoalC').innerText = userGoals.c;
-            document.getElementById('dashGoalF').innerText = userGoals.f;
             document.getElementById('waterGoalText').innerText = userGoals.water || 8;
             
             if(userGoals.displayName) {
@@ -660,13 +781,122 @@
             if (e.target.id === 'nutritionModal') window.closeModal();
         });
 
+        // NEW: Sleek Quantity Stepper Logic
+        window.updateQty = (id, delta, e) => {
+            e.stopPropagation();
+            const food = allFoods.find(f => f.id === id);
+            if (!food) return;
+            
+            // Save the base 1x values the first time they tap '+' or '-'
+            if (!food.baseCalories) {
+                food.servings = 1;
+                food.baseCalories = food.calories;
+                food.baseProtein = food.protein;
+                food.baseCarbs = food.carbs;
+                food.baseFat = food.fat;
+                food.baseFiber = food.fiber || 0;
+                food.baseSugar = food.sugar || 0;
+            }
+            
+            const newServings = food.servings + delta;
+            if (newServings < 1) return; // Can't go below 1 serving
+            
+            food.servings = newServings;
+            food.calories = food.baseCalories * newServings;
+            food.protein = food.baseProtein * newServings;
+            food.carbs = food.baseCarbs * newServings;
+            food.fat = food.baseFat * newServings;
+            food.fiber = food.baseFiber * newServings;
+            food.sugar = food.baseSugar * newServings;
+            
+            localStorage.setItem('mt_allFoods', JSON.stringify(allFoods));
+            updateDashboardUI();
+            renderHistory();
+        };
+
+        // NEW: Quick-Repeat (Duplicate a past food for today)
+        window.repeatFood = (id, e) => {
+            e.stopPropagation();
+            const oldFood = allFoods.find(f => f.id === id);
+            if (!oldFood) return;
+            
+            const isoDate = new Date().toISOString();
+            const uniqueId = Date.now().toString();
+            
+            const newEntry = { 
+                ...oldFood, 
+                id: uniqueId, 
+                dateLogged: isoDate,
+                servings: oldFood.servings || 1 
+            };
+            
+            allFoods.push(newEntry);
+            localStorage.setItem('mt_allFoods', JSON.stringify(allFoods));
+            
+            updateDashboardUI();
+            renderHistory();
+            window.showToast(`Logged ${newEntry.foodName} again!`, "success");
+            
+            // Backup to Sheets in background
+            try {
+                fetch(GOOGLE_SHEETS_URL, {
+                    method: "POST", mode: "no-cors", 
+                    body: JSON.stringify({ 
+                        action: "add", id: uniqueId, 
+                        foodName: newEntry.foodName, calories: newEntry.calories,
+                        protein: newEntry.protein, carbs: newEntry.carbs, fat: newEntry.fat,
+                        description: newEntry.description || "",
+                        date: new Date(isoDate).toLocaleDateString(), time: new Date(isoDate).toLocaleTimeString(),
+                        user: window.userGoals.displayName || "Anonymous"
+                    })
+                });
+            } catch(e) {}
+        };
+
         function renderHistory() {
             const list = document.getElementById('historyList');
             const sortedFoods = [...allFoods].sort((a,b) => new Date(b.dateLogged) - new Date(a.dateLogged));
             list.innerHTML = "";
             
+            // UPDATED: Subtle, elegant empty state
             if(sortedFoods.length === 0) {
-                list.innerHTML = `<div class="text-center text-gray-400 dark:text-gray-500 py-10 italic text-sm">No foods logged yet.</div>`;
+                list.innerHTML = `
+                    <div class="text-center py-8">
+                        <div class="w-16 h-16 bg-gray-50 dark:bg-gray-800 text-gray-500 rounded-full flex items-center justify-center mx-auto mb-3">
+                            <i class="ph ph-camera-plus text-3xl"></i>
+                        </div>
+                        <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-1">Welcome to MacroTrack</h3>
+                        <p class="text-sm text-gray-500 dark:text-gray-400 mb-6 px-4">Snap a photo or type a name. We automatically analyze complex dishes, mixed bowls, and hidden ingredients.</p>
+                        
+                        <div class="text-left opacity-60 pointer-events-none max-w-sm mx-auto">
+                            <div class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Example Logs</div>
+                            
+                            <div class="bg-white dark:bg-gray-900 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 flex justify-between items-center mb-3">
+                                <div>
+                                    <h4 class="font-bold text-gray-900 dark:text-gray-100 leading-tight mb-1">Spicy Ahi Poke Bowl</h4>
+                                    <p class="text-[10px] text-gray-400 dark:text-gray-500 mb-1 italic">Tuna, avocado, macadamia nuts, and sesame dressing.</p>
+                                    <p class="text-xs text-gray-500 flex gap-2"><span class="font-bold">520 kcal</span><span>| P:35g C:45g F:22g</span></p>
+                                </div>
+                            </div>
+
+                            <div class="bg-white dark:bg-gray-900 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 flex justify-between items-center mb-3">
+                                <div>
+                                    <h4 class="font-bold text-gray-900 dark:text-gray-100 leading-tight mb-1">Oaxacan Chicken Mole</h4>
+                                    <p class="text-[10px] text-gray-400 dark:text-gray-500 mb-1 italic">Rich chili-chocolate sauce over chicken breast with rice.</p>
+                                    <p class="text-xs text-gray-500 flex gap-2"><span class="font-bold">610 kcal</span><span>| P:40g C:35g F:32g</span></p>
+                                </div>
+                            </div>
+
+                            <div class="bg-white dark:bg-gray-900 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 flex justify-between items-center">
+                                <div>
+                                    <h4 class="font-bold text-gray-900 dark:text-gray-100 leading-tight mb-1">Takoyaki (6pcs)</h4>
+                                    <p class="text-[10px] text-gray-400 dark:text-gray-500 mb-1 italic">Octopus topped with bonito flakes and kewpie mayo.</p>
+                                    <p class="text-xs text-gray-500 flex gap-2"><span class="font-bold">380 kcal</span><span>| P:14g C:40g F:18g</span></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
                 return;
             }
 
@@ -685,22 +915,36 @@
                 }
 
                 const card = document.createElement('div');
-                card.className = "bg-white dark:bg-gray-900 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 flex justify-between items-center cursor-pointer active:bg-gray-50 dark:active:bg-gray-800 transition-colors duration-300";
+                // UPDATED: Added new action buttons to the right side of the card
+                card.className = "bg-white dark:bg-gray-900 p-3 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 flex justify-between items-center cursor-pointer active:bg-gray-50 dark:active:bg-gray-800 transition-colors duration-300";
                 card.onclick = () => window.openModal(food.id);
                 card.innerHTML = `
-                    <div class="flex-1">
+                    <div class="flex-1 pr-2">
                         <div class="flex items-center gap-2 mb-1">
-                            <h4 class="font-bold text-gray-900 dark:text-gray-100 leading-tight">${food.foodName}</h4>
-                            <span class="text-[10px] bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 px-2 py-0.5 rounded-full">${timeStr}</span>
+                            <h4 class="font-bold text-gray-900 dark:text-gray-100 leading-tight truncate max-w-[140px]">${food.foodName}</h4>
+                            <span class="text-[10px] bg-gray-100 dark:bg-gray-800 text-gray-500 px-2 py-0.5 rounded-full">${timeStr}</span>
                         </div>
                         <p class="text-xs text-gray-500 dark:text-gray-400 flex gap-2">
                             <span class="font-bold text-gray-700 dark:text-gray-300">${round1(food.calories)} kcal</span>
-                            <span>| P:${round1(food.protein)}g C:${round1(food.carbs)}g F:${round1(food.fat)}g</span>
+                            <span>| P:${round1(food.protein)} C:${round1(food.carbs)} F:${round1(food.fat)}</span>
                         </p>
                     </div>
-                    <button onclick="window.deleteFood('${food.id}', event)" class="w-10 h-10 rounded-full bg-red-50 dark:bg-red-900/20 text-red-500 flex items-center justify-center shrink-0 active:scale-90 transition-transform hover:bg-red-100 dark:hover:bg-red-900/40">
-                        <i class="ph ph-trash text-lg"></i>
-                    </button>
+                    
+                    <div class="flex items-center gap-2 shrink-0">
+                        <button onclick="window.repeatFood('${food.id}', event)" class="w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-500 flex items-center justify-center active:scale-90 transition-transform">
+                            <i class="ph ph-copy text-lg"></i>
+                        </button>
+                        
+                        <div class="flex items-center bg-gray-100 dark:bg-gray-800 rounded-full h-8 px-1">
+                            <button onclick="window.updateQty('${food.id}', -1, event)" class="w-6 h-6 flex items-center justify-center rounded-full text-gray-500 active:bg-gray-200 dark:active:bg-gray-700 transition-colors">-</button>
+                            <span class="text-xs font-bold w-5 text-center">${food.servings || 1}</span>
+                            <button onclick="window.updateQty('${food.id}', 1, event)" class="w-6 h-6 flex items-center justify-center rounded-full text-gray-500 active:bg-gray-200 dark:active:bg-gray-700 transition-colors">+</button>
+                        </div>
+
+                        <button onclick="window.deleteFood('${food.id}', event)" class="w-8 h-8 rounded-full bg-red-50 dark:bg-red-900/20 text-red-500 flex items-center justify-center active:scale-90 transition-transform">
+                            <i class="ph ph-trash text-lg"></i>
+                        </button>
+                    </div>
                 `;
                 list.appendChild(card);
             });
