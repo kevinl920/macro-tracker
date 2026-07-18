@@ -23,6 +23,10 @@
             min-height: 100vh;
             min-height: -webkit-fill-available;
         }
+
+        /* NEW: Hides the scrollbar for our Swipe-to-Delete trick */
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         
         .tab-content { display: none; }
         .tab-content.active { display: block; animation: fadeIn 0.2s ease-in-out; }
@@ -46,7 +50,8 @@
     </style>
 </head>
 
-<body class="bg-gray-50 dark:bg-gray-950 font-sans text-gray-800 dark:text-gray-100 antialiased selection:bg-blue-200 dark:selection:bg-blue-900 transition-colors duration-300 fixed inset-0 flex flex-col overflow-hidden">
+<!-- UPDATED BODY TAG: Uses 100dvh to perfectly fit iPhone screens and fix the floating gap -->
+<body class="bg-gray-50 dark:bg-gray-950 font-sans text-gray-800 dark:text-gray-100 antialiased selection:bg-blue-200 dark:selection:bg-blue-900 transition-colors duration-300 h-[100dvh] flex flex-col overflow-hidden w-full">
 
     <!-- Notification Toast -->
     <div id="toast" class="fixed left-4 right-4 z-[100] bg-gray-900 dark:bg-white text-white dark:text-gray-900 p-4 rounded-2xl shadow-xl flex items-center gap-3" style="top: calc(env(safe-area-inset-top) + 1rem);">
@@ -781,6 +786,28 @@
             if (e.target.id === 'nutritionModal') window.closeModal();
         });
 
+        // NEW: Delete Food Logic
+        window.deleteFood = (id, e) => {
+            if(e) e.stopPropagation();
+            
+            // Remove from local array
+            allFoods = allFoods.filter(f => f.id !== id);
+            localStorage.setItem('mt_allFoods', JSON.stringify(allFoods));
+            
+            // Update the UI
+            updateDashboardUI();
+            renderHistory();
+            window.showToast("Food deleted", "success");
+            
+            // Send background request to delete from Google Sheets
+            try {
+                fetch(GOOGLE_SHEETS_URL, {
+                    method: "POST", mode: "no-cors", 
+                    body: JSON.stringify({ action: "delete", id: id })
+                });
+            } catch(err) { console.error("Sheet delete failed"); }
+        };
+
         // NEW: Sleek Quantity Stepper Logic
         window.updateQty = (id, delta, e) => {
             e.stopPropagation();
@@ -858,7 +885,6 @@
             const sortedFoods = [...allFoods].sort((a,b) => new Date(b.dateLogged) - new Date(a.dateLogged));
             list.innerHTML = "";
             
-            // UPDATED: Subtle, elegant empty state
             if(sortedFoods.length === 0) {
                 list.innerHTML = `
                     <div class="text-center py-8">
@@ -874,7 +900,7 @@
                             <div class="bg-white dark:bg-gray-900 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 flex justify-between items-center mb-3">
                                 <div>
                                     <h4 class="font-bold text-gray-900 dark:text-gray-100 leading-tight mb-1">Spicy Ahi Poke Bowl</h4>
-                                    <p class="text-[10px] text-gray-400 dark:text-gray-500 mb-1 italic">Tuna, avocado, macadamia nuts, and sesame dressing.</p>
+                                    <p class="text-[10px] text-gray-400 dark:text-gray-500 mb-1 italic">Visual AI detects hidden fats & oils.</p>
                                     <p class="text-xs text-gray-500 flex gap-2"><span class="font-bold">520 kcal</span><span>| P:35g C:45g F:22g</span></p>
                                 </div>
                             </div>
@@ -882,15 +908,23 @@
                             <div class="bg-white dark:bg-gray-900 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 flex justify-between items-center mb-3">
                                 <div>
                                     <h4 class="font-bold text-gray-900 dark:text-gray-100 leading-tight mb-1">Oaxacan Chicken Mole</h4>
-                                    <p class="text-[10px] text-gray-400 dark:text-gray-500 mb-1 italic">Rich chili-chocolate sauce over chicken breast with rice.</p>
+                                    <p class="text-[10px] text-gray-400 dark:text-gray-500 mb-1 italic">Visual AI breaks down complex regional sauces.</p>
                                     <p class="text-xs text-gray-500 flex gap-2"><span class="font-bold">610 kcal</span><span>| P:40g C:35g F:32g</span></p>
+                                </div>
+                            </div>
+
+                            <div class="bg-white dark:bg-gray-900 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 flex justify-between items-center mb-3">
+                                <div>
+                                    <h4 class="font-bold text-gray-900 dark:text-gray-100 leading-tight mb-1">Shakshuka with Feta</h4>
+                                    <p class="text-[10px] text-gray-400 dark:text-gray-500 mb-1 italic">Visual AI estimates messy pan portions.</p>
+                                    <p class="text-xs text-gray-500 flex gap-2"><span class="font-bold">340 kcal</span><span>| P:18g C:12g F:24g</span></p>
                                 </div>
                             </div>
 
                             <div class="bg-white dark:bg-gray-900 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 flex justify-between items-center">
                                 <div>
                                     <h4 class="font-bold text-gray-900 dark:text-gray-100 leading-tight mb-1">Takoyaki (6pcs)</h4>
-                                    <p class="text-[10px] text-gray-400 dark:text-gray-500 mb-1 italic">Octopus topped with bonito flakes and kewpie mayo.</p>
+                                    <p class="text-[10px] text-gray-400 dark:text-gray-500 mb-1 italic">Visual AI counts discrete items automatically.</p>
                                     <p class="text-xs text-gray-500 flex gap-2"><span class="font-bold">380 kcal</span><span>| P:14g C:40g F:18g</span></p>
                                 </div>
                             </div>
@@ -915,35 +949,42 @@
                 }
 
                 const card = document.createElement('div');
-                // UPDATED: Added new action buttons to the right side of the card
-                card.className = "bg-white dark:bg-gray-900 p-3 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 flex justify-between items-center cursor-pointer active:bg-gray-50 dark:active:bg-gray-800 transition-colors duration-300";
-                card.onclick = () => window.openModal(food.id);
+                // CLEAN UI & SWIPE-TO-DELETE ARCHITECTURE
+                card.className = "mb-3 relative rounded-2xl overflow-hidden bg-red-500 shadow-sm border border-gray-100 dark:border-gray-800";
                 card.innerHTML = `
-                    <div class="flex-1 pr-2">
-                        <div class="flex items-center gap-2 mb-1">
-                            <h4 class="font-bold text-gray-900 dark:text-gray-100 leading-tight truncate max-w-[140px]">${food.foodName}</h4>
-                            <span class="text-[10px] bg-gray-100 dark:bg-gray-800 text-gray-500 px-2 py-0.5 rounded-full">${timeStr}</span>
-                        </div>
-                        <p class="text-xs text-gray-500 dark:text-gray-400 flex gap-2">
-                            <span class="font-bold text-gray-700 dark:text-gray-300">${round1(food.calories)} kcal</span>
-                            <span>| P:${round1(food.protein)} C:${round1(food.carbs)} F:${round1(food.fat)}</span>
-                        </p>
-                    </div>
-                    
-                    <div class="flex items-center gap-2 shrink-0">
-                        <button onclick="window.repeatFood('${food.id}', event)" class="w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-500 flex items-center justify-center active:scale-90 transition-transform">
-                            <i class="ph ph-copy text-lg"></i>
-                        </button>
+                    <div class="flex overflow-x-auto snap-x snap-mandatory hide-scrollbar">
                         
-                        <div class="flex items-center bg-gray-100 dark:bg-gray-800 rounded-full h-8 px-1">
-                            <button onclick="window.updateQty('${food.id}', -1, event)" class="w-6 h-6 flex items-center justify-center rounded-full text-gray-500 active:bg-gray-200 dark:active:bg-gray-700 transition-colors">-</button>
-                            <span class="text-xs font-bold w-5 text-center">${food.servings || 1}</span>
-                            <button onclick="window.updateQty('${food.id}', 1, event)" class="w-6 h-6 flex items-center justify-center rounded-full text-gray-500 active:bg-gray-200 dark:active:bg-gray-700 transition-colors">+</button>
+                        <!-- FRONT CARD (Snaps into view, stretches 100% width) -->
+                        <div class="snap-start w-full shrink-0 bg-white dark:bg-gray-900 p-3 flex justify-between items-center relative z-10 transition-colors">
+                            
+                            <!-- Left: Food Details (Tappable) -->
+                            <div class="flex flex-col flex-1 min-w-0 pr-3 cursor-pointer" onclick="window.openModal('${food.id}')">
+                                <div class="flex items-center gap-2 mb-1">
+                                    <h4 class="font-bold text-gray-900 dark:text-gray-100 leading-tight truncate">${food.foodName}</h4>
+                                    <span class="text-[10px] bg-gray-100 dark:bg-gray-800 text-gray-500 px-2 py-0.5 rounded-full shrink-0">${timeStr}</span>
+                                </div>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 flex gap-2">
+                                    <span class="font-bold text-gray-700 dark:text-gray-300">${round1(food.calories)} kcal</span>
+                                    <span>| P:${round1(food.protein)} C:${round1(food.carbs)} F:${round1(food.fat)}</span>
+                                </p>
+                            </div>
+                            
+                            <!-- Right: Just the Stepper -->
+                            <div class="flex items-center bg-gray-100 dark:bg-gray-800 rounded-full h-8 px-1 shrink-0">
+                                <button onclick="window.updateQty('${food.id}', -1, event)" class="w-6 h-6 flex items-center justify-center rounded-full text-gray-500 active:bg-gray-200 dark:active:bg-gray-700 transition-colors">-</button>
+                                <span class="text-xs font-bold w-5 text-center">${food.servings || 1}</span>
+                                <button onclick="window.updateQty('${food.id}', 1, event)" class="w-6 h-6 flex items-center justify-center rounded-full text-gray-500 active:bg-gray-200 dark:active:bg-gray-700 transition-colors">+</button>
+                            </div>
                         </div>
 
-                        <button onclick="window.deleteFood('${food.id}', event)" class="w-8 h-8 rounded-full bg-red-50 dark:bg-red-900/20 text-red-500 flex items-center justify-center active:scale-90 transition-transform">
-                            <i class="ph ph-trash text-lg"></i>
-                        </button>
+                        <!-- BACK CARD (Swipe left to reveal, snaps open) -->
+                        <div class="snap-end w-24 shrink-0 flex items-center justify-center text-white cursor-pointer active:bg-red-600 transition-colors" onclick="window.deleteFood('${food.id}', event)">
+                            <div class="flex flex-col items-center">
+                                <i class="ph ph-trash text-2xl mb-1"></i>
+                                <span class="text-[10px] font-bold">Delete</span>
+                            </div>
+                        </div>
+                        
                     </div>
                 `;
                 list.appendChild(card);
