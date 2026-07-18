@@ -351,27 +351,31 @@
         </div>
     </main>
 
-    <!-- THE NAVIGATION BAR (Sleek Icon-Only Version) -->
-    <nav class="fixed bottom-0 left-0 w-full bg-white border-t border-gray-100 flex justify-around pb-8 pt-4 px-4 z-50">
+    <!-- THE NAVIGATION BAR (Original Look with Bottom-Lock Fix) -->
+    <nav class="fixed bottom-0 left-0 w-full bg-white border-t border-gray-100 flex justify-around pb-6 pt-3 px-2 z-50">
         
         <!-- Log Tab -->
         <button onclick="switchTab('log')" id="nav-log" class="flex flex-col items-center justify-center text-gray-400 transition-colors">
-            <i class="ph ph-plus-circle text-3xl"></i>
+            <i class="ph ph-plus-circle text-2xl"></i>
+            <span class="text-xs mt-1 font-medium">Log</span>
         </button>
     
         <!-- Dash Tab -->
         <button onclick="switchTab('dash')" id="nav-dash" class="flex flex-col items-center justify-center text-gray-400 transition-colors">
-            <i class="ph ph-chart-pie-slice text-3xl"></i>
+            <i class="ph ph-chart-pie-slice text-2xl"></i>
+            <span class="text-xs mt-1 font-medium">Dash</span>
         </button>
     
         <!-- History Tab -->
-        <button onclick="switchTab('history')" id="nav-history" class="flex flex-col items-center justify-center text-gray-400 transition-colors">
-            <i class="ph ph-clock-counter-clockwise text-3xl"></i>
+        <button onclick="switchTab('history')" id="nav-history" class="flex flex-col items-center justify-center text-blue-500 transition-colors">
+            <i class="ph ph-clock-counter-clockwise text-2xl"></i>
+            <span class="text-xs mt-1 font-medium">History</span>
         </button>
     
         <!-- Settings Tab -->
         <button onclick="switchTab('settings')" id="nav-settings" class="flex flex-col items-center justify-center text-gray-400 transition-colors">
-            <i class="ph ph-gear text-3xl"></i>
+            <i class="ph ph-gear text-2xl"></i>
+            <span class="text-xs mt-1 font-medium">Settings</span>
         </button>
         
     </nav>
