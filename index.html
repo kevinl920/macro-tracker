@@ -351,25 +351,22 @@
         </div>
     </main>
 
-    <!-- THE NAVIGATION BAR (Sleek, 2xl Icons, Giant Hit Boxes) -->
-    <nav class="fixed bottom-0 left-0 w-full bg-white border-t border-gray-100 flex justify-around pb-8 pt-4 px-2 z-50">
-        
-        <button onclick="switchTab('log')" id="nav-log" class="flex items-center justify-center w-16 h-12 text-gray-400 transition-colors">
-            <i class="ph ph-plus-circle text-2xl pointer-events-none"></i>
-        </button>
-    
-        <button onclick="switchTab('dash')" id="nav-dash" class="flex items-center justify-center w-16 h-12 text-gray-400 transition-colors">
-            <i class="ph ph-chart-pie-slice text-2xl pointer-events-none"></i>
-        </button>
-    
-        <button onclick="switchTab('history')" id="nav-history" class="flex items-center justify-center w-16 h-12 text-blue-500 transition-colors">
-            <i class="ph ph-clock-counter-clockwise text-2xl pointer-events-none"></i>
-        </button>
-    
-        <button onclick="switchTab('settings')" id="nav-settings" class="flex items-center justify-center w-16 h-12 text-gray-400 transition-colors">
-            <i class="ph ph-gear text-2xl pointer-events-none"></i>
-        </button>
-        
+    <!-- Bottom Navigation -->
+    <nav class="fixed bottom-0 left-0 w-full bg-white/95 dark:bg-gray-900/95 backdrop-blur-lg border-t border-gray-200 dark:border-gray-800 z-50 transition-colors duration-300" style="padding-bottom: env(safe-area-inset-bottom);">
+        <div class="flex justify-around items-center h-16">
+            <button class="nav-item active flex items-center justify-center w-16 h-16 text-gray-400 dark:text-gray-500 transition-colors" data-target="tab-log">
+                <i class="ph-fill ph-plus-circle text-2xl pointer-events-none"></i>
+            </button>
+            <button class="nav-item flex items-center justify-center w-16 h-16 text-gray-400 dark:text-gray-500 transition-colors" data-target="tab-dash">
+                <i class="ph-fill ph-chart-pie-slice text-2xl pointer-events-none"></i>
+            </button>
+            <button class="nav-item flex items-center justify-center w-16 h-16 text-gray-400 dark:text-gray-500 transition-colors" data-target="tab-history">
+                <i class="ph-fill ph-clock-counter-clockwise text-2xl pointer-events-none"></i>
+            </button>
+            <button class="nav-item flex items-center justify-center w-16 h-16 text-gray-400 dark:text-gray-500 transition-colors" data-target="tab-settings">
+                <i class="ph-fill ph-gear text-2xl pointer-events-none"></i>
+            </button>
+        </div>
     </nav>
 
     <!-- App Script: Reverted safely back to Local Offline Storage -->
