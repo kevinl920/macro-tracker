@@ -16,12 +16,14 @@
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     
     <style>
-        /* Apple Safari Fix for Floating Bottom Bars */
-        html { height: -webkit-fill-available; }
-        body { 
-            -webkit-tap-highlight-color: transparent; 
-            min-height: 100vh;
-            min-height: -webkit-fill-available;
+        /* Lock the page to exactly the visible screen so nothing can push
+           the header off the top or leave a gap under the bottom bar */
+        html, body {
+            height: 100%;
+            overscroll-behavior: none;
+        }
+        body {
+            -webkit-tap-highlight-color: transparent;
         }
 
         /* NEW: Hides the scrollbar for our Swipe-to-Delete trick */
@@ -887,7 +889,6 @@
             list.innerHTML = "";
             
             if(sortedFoods.length === 0) {
-                // FIXED: Maintained the original clean layout, updated to remove AI mentions
                 list.innerHTML = `
                     <div class="text-center py-8">
                         <div class="w-16 h-16 bg-gray-50 dark:bg-gray-800 text-gray-500 rounded-full flex items-center justify-center mx-auto mb-3">
@@ -951,7 +952,6 @@
                 }
 
                 const card = document.createElement('div');
-                // CLEAN UI & SWIPE-TO-DELETE ARCHITECTURE
                 card.className = "mb-3 relative rounded-2xl overflow-hidden bg-red-500 shadow-sm border border-gray-100 dark:border-gray-800";
                 card.innerHTML = `
                     <div class="flex overflow-x-auto snap-x snap-mandatory hide-scrollbar">
