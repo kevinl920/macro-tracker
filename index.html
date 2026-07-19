@@ -57,8 +57,7 @@
     </style>
 </head>
 
-<!-- Flexbox layout locks header top, nav bottom, and scrolls the middle -->
-<body class="bg-gray-50 dark:bg-gray-950 font-sans text-gray-800 dark:text-gray-100 antialiased selection:bg-blue-200 dark:selection:bg-blue-900 transition-colors duration-300 w-full flex flex-col">
+<body class="bg-gray-50 dark:bg-gray-950 font-sans text-gray-800 dark:text-gray-100 antialiased selection:bg-blue-200 dark:selection:bg-blue-900 transition-colors duration-300 w-full min-h-screen">
 
     <!-- Phase 1: Firebase Auth Welcome Screen Overlay -->
     <div id="authOverlay" class="fixed inset-0 bg-white dark:bg-gray-950 z-[300] hidden flex-col items-center justify-center p-6 transition-opacity duration-300">
@@ -270,7 +269,7 @@
     </main>
 
     <!-- Bottom Navigation -->
-    <nav class="fixed bottom-0 w-full bg-white/95 dark:bg-gray-900/95 backdrop-blur-lg border-t border-gray-200 dark:border-gray-800 z-50 transition-colors duration-300" style="padding-bottom: env(safe-area-inset-bottom);">
+    <nav class="fixed bottom-0 w-full bg-white/95 dark:bg-gray-900/95 backdrop-blur-lg border-t border-gray-200 dark:border-gray-800 z-[100] transition-colors duration-300" style="padding-bottom: env(safe-area-inset-bottom);">
         <div class="flex justify-around items-center h-16 px-2">
             <button class="nav-item active flex items-center justify-center w-16 h-12 text-gray-400 dark:text-gray-500 transition-colors" data-target="tab-log">
                 <i class="ph-fill ph-plus-circle text-2xl pointer-events-none"></i>
@@ -285,6 +284,8 @@
                 <i class="ph-fill ph-gear text-2xl pointer-events-none"></i>
             </button>
         </div>
+        <!-- Safari iOS Gap Filler: Acts as a curtain hanging below the nav to perfectly cover any floating gap -->
+        <div class="absolute top-full left-0 w-full h-[50vh] bg-white/95 dark:bg-gray-900/95 backdrop-blur-lg"></div>
     </nav>
 
     <!-- App Script -->
@@ -469,7 +470,12 @@
             document.getElementById('setGoalC').innerText = userGoals.c;
             document.getElementById('setGoalF').innerText = userGoals.f;
             document.getElementById('floatGoalCals').innerText = userGoals.cals;
-            document.getElementById('waterGoalText').innerText = userGoals.water || 8;
+            
+            // Add a check to see if the element exists before trying to update it
+            const waterGoalElement = document.getElementById('waterGoalText');
+            if (waterGoalElement) {
+                waterGoalElement.innerText = userGoals.water || 8;
+            }
             
             if(userGoals.displayName) {
                 document.getElementById('setDisplayName').value = userGoals.displayName;
