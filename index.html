@@ -346,10 +346,11 @@
                 <div class="bg-white dark:bg-gray-900 p-4 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800">
                     <h3 class="font-bold text-gray-900 dark:text-white mb-2">Data Backup</h3>
                     <p class="text-xs text-gray-500 mb-4">Export your local storage code to move your data to a new device.</p>
-                    <div class="flex gap-2">
+                    <div class="flex gap-2 mb-3">
                         <button onclick="exportData()" class="flex-1 bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 font-bold py-2 rounded-xl active:scale-95 transition-transform text-sm"><i class="ph ph-export"></i> Export</button>
                         <button onclick="importData()" class="flex-1 bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 font-bold py-2 rounded-xl active:scale-95 transition-transform text-sm"><i class="ph ph-download"></i> Import</button>
                     </div>
+                    <button onclick="forceCloudSync()" class="w-full bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 font-bold py-3 rounded-xl active:scale-95 transition-transform flex items-center justify-center gap-2"><i class="ph-bold ph-cloud-arrow-up text-xl"></i> Force Sync to Cloud</button>
                 </div>
             </div>
         </div>
@@ -662,6 +663,27 @@
                 setTimeout(() => location.reload(), 1500);
             } catch (e) {
                 showToast("Invalid backup code", "error");
+            }
+        };
+
+        window.forceCloudSync = async () => {
+            if (!FIREBASE_ENABLED || !currentUser) return window.showToast("Please log in first!", "error");
+            if (allFoods.length === 0) return window.showToast("No foods to sync!", "error");
+            
+            try {
+                window.showToast("Pushing local data to cloud...", "info");
+                const batch = window.db.batch();
+                const foodsRef = window.db.collection('artifacts').doc(appId).collection('users').doc(currentUser.uid).collection('foods');
+                
+                allFoods.forEach(food => {
+                    batch.set(foodsRef.doc(food.id), food);
+                });
+                
+                await batch.commit();
+                window.showToast("Sync complete! Check Firebase.", "success");
+            } catch (err) {
+                console.error("Sync Error:", err);
+                window.showToast("Sync Failed: " + err.message, "error");
             }
         };
 
