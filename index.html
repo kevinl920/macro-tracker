@@ -50,8 +50,8 @@
     </style>
 </head>
 
-<!-- UPDATED BODY TAG: Uses 100dvh to perfectly fit iPhone screens and fix the floating gap -->
-<body class="bg-gray-50 dark:bg-gray-950 font-sans text-gray-800 dark:text-gray-100 antialiased selection:bg-blue-200 dark:selection:bg-blue-900 transition-colors duration-300 h-[100dvh] flex flex-col overflow-hidden w-full">
+<!-- UPDATED BODY TAG: Bulletproof iOS Native Layout (Native scrolling, no weird height calculations) -->
+<body class="bg-gray-50 dark:bg-gray-950 font-sans text-gray-800 dark:text-gray-100 antialiased selection:bg-blue-200 dark:selection:bg-blue-900 transition-colors duration-300 min-h-screen w-full">
 
     <!-- Notification Toast -->
     <div id="toast" class="fixed left-4 right-4 z-[100] bg-gray-900 dark:bg-white text-white dark:text-gray-900 p-4 rounded-2xl shadow-xl flex items-center gap-3" style="top: calc(env(safe-area-inset-top) + 1rem);">
@@ -102,18 +102,19 @@
         </div>
     </div>
     
-    <!-- Header -->
-    <header class="shrink-0 w-full bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg border-b border-gray-200 dark:border-gray-800 px-6 pb-4 z-50 flex justify-between items-center transition-colors duration-300" style="padding-top: max(env(safe-area-inset-top), 1rem);">
+    <!-- Header (Fixed to absolute top) -->
+    <header class="fixed top-0 left-0 w-full bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg border-b border-gray-200 dark:border-gray-800 px-6 pb-4 z-50 flex justify-between items-center transition-colors duration-300" style="padding-top: max(env(safe-area-inset-top), 1rem);">
         <h1 class="text-xl font-bold text-gray-900 dark:text-white tracking-tight" id="headerTitle">Log Food</h1>
         <div class="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-blue-600 dark:text-blue-300 font-bold text-xs uppercase" id="userAvatar">U</div>
     </header>
 
-    <!-- Main Scrollable Area -->
-    <main class="w-full flex-1 overflow-y-auto relative z-0 pb-6" id="mainContent">
+    <!-- Main Content Area (Padding top/bottom to clear the fixed bars) -->
+    <main class="w-full pt-[88px] pb-32 z-0" id="mainContent">
         
         <!-- ==================== TAB 1: LOG FOOD ==================== -->
         <div id="tab-log" class="tab-content active">
-            <div class="sticky top-0 z-40 p-4 bg-gray-50/90 dark:bg-gray-950/90 backdrop-blur pb-2 transition-colors duration-300">
+            <!-- Pushed sticky top down to account for fixed header -->
+            <div class="sticky top-[80px] z-40 p-4 bg-gray-50/90 dark:bg-gray-950/90 backdrop-blur pb-2 transition-colors duration-300">
                 <div class="bg-white dark:bg-gray-900 p-4 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800 transition-colors duration-300">
                     <div class="flex justify-between items-end mb-2">
                         <div>
@@ -277,19 +278,19 @@
         </div>
     </main>
 
-    <!-- Bottom Navigation -->
-    <nav class="shrink-0 w-full bg-white/95 dark:bg-gray-900/95 backdrop-blur-lg border-t border-gray-200 dark:border-gray-800 z-50 transition-colors duration-300" style="padding-bottom: env(safe-area-inset-bottom);">
-        <div class="flex justify-around items-center h-16">
-            <button class="nav-item active flex items-center justify-center w-16 h-16 text-gray-400 dark:text-gray-500 transition-colors" data-target="tab-log">
+    <!-- Bottom Navigation (Fixed to absolute bottom glass) -->
+    <nav class="fixed bottom-0 left-0 w-full bg-white/95 dark:bg-gray-900/95 backdrop-blur-lg border-t border-gray-200 dark:border-gray-800 z-50 transition-colors duration-300" style="padding-bottom: env(safe-area-inset-bottom);">
+        <div class="flex justify-around items-center h-16 px-2">
+            <button class="nav-item active flex items-center justify-center w-16 h-12 text-gray-400 dark:text-gray-500 transition-colors" data-target="tab-log">
                 <i class="ph-fill ph-plus-circle text-2xl pointer-events-none"></i>
             </button>
-            <button class="nav-item flex items-center justify-center w-16 h-16 text-gray-400 dark:text-gray-500 transition-colors" data-target="tab-dash">
+            <button class="nav-item flex items-center justify-center w-16 h-12 text-gray-400 dark:text-gray-500 transition-colors" data-target="tab-dash">
                 <i class="ph-fill ph-chart-pie-slice text-2xl pointer-events-none"></i>
             </button>
-            <button class="nav-item flex items-center justify-center w-16 h-16 text-gray-400 dark:text-gray-500 transition-colors" data-target="tab-history">
+            <button class="nav-item flex items-center justify-center w-16 h-12 text-gray-400 dark:text-gray-500 transition-colors" data-target="tab-history">
                 <i class="ph-fill ph-clock-counter-clockwise text-2xl pointer-events-none"></i>
             </button>
-            <button class="nav-item flex items-center justify-center w-16 h-16 text-gray-400 dark:text-gray-500 transition-colors" data-target="tab-settings">
+            <button class="nav-item flex items-center justify-center w-16 h-12 text-gray-400 dark:text-gray-500 transition-colors" data-target="tab-settings">
                 <i class="ph-fill ph-gear text-2xl pointer-events-none"></i>
             </button>
         </div>
