@@ -882,58 +882,94 @@
         };
 
         function renderHistory() {
-            const list = document.getElementById('historyList');
-            const sortedFoods = [...allFoods].sort((a,b) => new Date(b.dateLogged) - new Date(a.dateLogged));
-            list.innerHTML = "";
-            
-            if(sortedFoods.length === 0) {
-                list.innerHTML = `
-                    <div class="text-center py-8">
-                        <div class="w-16 h-16 bg-gray-50 dark:bg-gray-800 text-gray-500 rounded-full flex items-center justify-center mx-auto mb-3">
-                            <i class="ph ph-camera-plus text-3xl"></i>
-                        </div>
-                        <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-1">Welcome to MacroTrack</h3>
-                        <p class="text-sm text-gray-500 dark:text-gray-400 mb-6 px-4">Snap a photo or type a name. We automatically analyze complex dishes, mixed bowls, and hidden ingredients.</p>
-                        
-                        <div class="text-left opacity-60 pointer-events-none max-w-sm mx-auto">
-                            <div class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Example Logs</div>
-                            
-                            <div class="bg-white dark:bg-gray-900 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 flex justify-between items-center mb-3">
-                                <div>
-                                    <h4 class="font-bold text-gray-900 dark:text-gray-100 leading-tight mb-1">Spicy Ahi Poke Bowl</h4>
-                                    <p class="text-[10px] text-gray-400 dark:text-gray-500 mb-1 italic">Visual AI detects hidden fats & oils.</p>
-                                    <p class="text-xs text-gray-500 flex gap-2"><span class="font-bold">520 kcal</span><span>| P:35g C:45g F:22g</span></p>
-                                </div>
-                            </div>
-
-                            <div class="bg-white dark:bg-gray-900 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 flex justify-between items-center mb-3">
-                                <div>
-                                    <h4 class="font-bold text-gray-900 dark:text-gray-100 leading-tight mb-1">Oaxacan Chicken Mole</h4>
-                                    <p class="text-[10px] text-gray-400 dark:text-gray-500 mb-1 italic">Visual AI breaks down complex regional sauces.</p>
-                                    <p class="text-xs text-gray-500 flex gap-2"><span class="font-bold">610 kcal</span><span>| P:40g C:35g F:32g</span></p>
-                                </div>
-                            </div>
-
-                            <div class="bg-white dark:bg-gray-900 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 flex justify-between items-center mb-3">
-                                <div>
-                                    <h4 class="font-bold text-gray-900 dark:text-gray-100 leading-tight mb-1">Shakshuka with Feta</h4>
-                                    <p class="text-[10px] text-gray-400 dark:text-gray-500 mb-1 italic">Visual AI estimates messy pan portions.</p>
-                                    <p class="text-xs text-gray-500 flex gap-2"><span class="font-bold">340 kcal</span><span>| P:18g C:12g F:24g</span></p>
-                                </div>
-                            </div>
-
-                            <div class="bg-white dark:bg-gray-900 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 flex justify-between items-center">
-                                <div>
-                                    <h4 class="font-bold text-gray-900 dark:text-gray-100 leading-tight mb-1">Takoyaki (6pcs)</h4>
-                                    <p class="text-[10px] text-gray-400 dark:text-gray-500 mb-1 italic">Visual AI counts discrete items automatically.</p>
-                                    <p class="text-xs text-gray-500 flex gap-2"><span class="font-bold">380 kcal</span><span>| P:14g C:40g F:18g</span></p>
+            const historyContainer = document.getElementById('historyList');
+            historyContainer.innerHTML = '';
+        
+            // If no real foods, show the natural, subtle sample list
+            if (allFoods.length === 0) {
+                const samples = [
+                    { id: 's1', name: 'Spicy Ahi Poke Bowl', cal: 580, p: 32, c: 65, f: 22, desc: 'Ahi tuna, edamame, avocado, and spicy mayo over sushi rice.' },
+                    { id: 's2', name: 'Chicken Mole Poblano', cal: 420, p: 28, c: 35, f: 18, desc: 'Shredded chicken in a rich, dark chili and chocolate sauce with sesame seeds.' },
+                    { id: 's3', name: 'Shakshuka', cal: 310, p: 18, c: 22, f: 16, desc: 'Two poached eggs in a spiced tomato and bell pepper stew.' },
+                    { id: 's4', name: 'Takoyaki', cal: 350, p: 12, c: 42, f: 14, desc: 'Six octopus balls topped with bonito flakes, mayo, and sweet sauce.' }
+                ];
+        
+                let html = `<div class="text-xs text-gray-400 font-bold uppercase tracking-wider mb-4 mt-6">Sample Entries</div>`;
+                
+                samples.forEach(f => {
+                    html += `
+                    <div class="bg-white rounded-2xl p-4 mb-4 shadow-sm border border-gray-100 opacity-60">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h4 class="font-bold text-gray-800 text-lg">${f.name}</h4>
+                                <p class="text-xs text-gray-400 mt-1 line-clamp-1">${f.desc}</p>
+                                <div class="text-sm text-gray-500 mt-2">
+                                    <span class="font-bold text-gray-900">${f.cal} kcal</span> 
+                                    <span class="text-gray-300 mx-1">|</span> 
+                                    P:${f.p}g C:${f.c}g F:${f.f}g
                                 </div>
                             </div>
                         </div>
-                    </div>
-                `;
+                    </div>`;
+                });
+                historyContainer.innerHTML = html;
                 return;
             }
+        
+            // --- REAL FOODS RENDERING (Only runs when you actually log something) ---
+            // Group foods by date...
+            const groups = {};
+            allFoods.forEach(food => {
+                const dateStr = new Date(food.dateLogged).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                const label = dateStr === new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) ? 'TODAY' : dateStr.toUpperCase();
+                if (!groups[label]) groups[label] = [];
+                groups[label].push(food);
+            });
+        
+            for (const [dateLabel, foods] of Object.entries(groups)) {
+                let groupHtml = `<div class="text-xs text-gray-400 font-bold uppercase tracking-wider mb-3 mt-6">${dateLabel}</div>`;
+                
+                foods.reverse().forEach(food => {
+                    const timeStr = new Date(food.dateLogged).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                    
+                    groupHtml += `
+                    <div class="bg-white rounded-2xl mb-4 shadow-sm border border-gray-100 overflow-hidden relative" style="scroll-snap-type: x mandatory; display: flex; overflow-x: auto;">
+                        
+                        <!-- The Main Card Content -->
+                        <div class="p-4 w-full flex-shrink-0" style="scroll-snap-align: start;">
+                            <div class="flex justify-between items-start">
+                                <div class="flex-1 pr-2">
+                                    <div class="flex items-center gap-2">
+                                        <h4 class="font-bold text-gray-800 text-lg truncate">${food.foodName}</h4>
+                                        <span class="text-[10px] bg-gray-100 text-gray-500 px-2 py-1 rounded-full whitespace-nowrap">${timeStr}</span>
+                                    </div>
+                                    <div class="text-sm text-gray-500 mt-1">
+                                        <span class="font-bold text-gray-900">${food.calories} kcal</span> 
+                                        <span class="text-gray-300 mx-1">|</span> 
+                                        P:${food.protein} C:${food.carbs} F:${food.fat}
+                                    </div>
+                                </div>
+                                
+                                <!-- The Quantity Stepper -->
+                                <div class="flex items-center bg-gray-50 rounded-full px-2 py-1 border border-gray-200">
+                                    <button onclick="updateQty('${food.id}', -1)" class="w-6 h-6 flex items-center justify-center text-gray-500 hover:text-gray-800 font-bold">&minus;</button>
+                                    <span class="w-6 text-center text-sm font-bold text-gray-800">1</span>
+                                    <button onclick="updateQty('${food.id}', 1)" class="w-6 h-6 flex items-center justify-center text-gray-500 hover:text-gray-800 font-bold">+</button>
+                                </div>
+                            </div>
+                        </div>
+        
+                        <!-- The Hidden Swipe-to-Delete Action -->
+                        <div class="bg-red-500 w-24 flex-shrink-0 flex items-center justify-center text-white" style="scroll-snap-align: end;">
+                            <button onclick="deleteFood('${food.id}')" class="w-full h-full flex items-center justify-center">
+                                <i class="ph ph-trash text-2xl"></i>
+                            </button>
+                        </div>
+                    </div>`;
+                });
+                historyContainer.innerHTML += groupHtml;
+            }
+        }
 
             let lastDateStr = "";
             sortedFoods.forEach(food => {
