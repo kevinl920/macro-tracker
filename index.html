@@ -74,6 +74,23 @@
         </button>
     </div>
 
+    <!-- NEW Phase 2: Username Selection Modal -->
+    <div id="usernameModal" class="fixed inset-0 bg-white dark:bg-gray-950 z-[350] hidden flex-col items-center justify-center p-6 transition-opacity duration-300">
+        <i class="ph-fill ph-at text-6xl text-blue-500 mb-4 animate-bounce"></i>
+        <h1 class="text-3xl font-black text-gray-900 dark:text-white mb-2 tracking-tight">Pick a Username</h1>
+        <p class="text-center text-gray-500 dark:text-gray-400 mb-8 max-w-xs text-sm">This unique handle is how your friends will find you on MacroTrack.</p>
+        
+        <div class="relative w-full max-w-xs mb-2">
+            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-lg">@</span>
+            <input type="text" id="usernameInput" class="w-full bg-gray-100 dark:bg-gray-800 border-2 border-transparent focus:border-blue-500 rounded-2xl py-4 pl-10 pr-4 outline-none font-bold text-gray-900 dark:text-white placeholder-gray-400" placeholder="username" oninput="document.getElementById('usernameStatus').innerText=''">
+        </div>
+        <p id="usernameStatus" class="text-xs font-bold text-red-500 h-4 mb-4"></p>
+        
+        <button onclick="claimUsername()" id="claimUsernameBtn" class="w-full max-w-xs bg-blue-600 text-white font-bold py-4 rounded-2xl mb-4 flex items-center justify-center gap-2 active:scale-95 transition-transform">
+            Claim Username <i class="ph-bold ph-arrow-right text-xl"></i>
+        </button>
+    </div>
+
     <!-- Notification Toast -->
     <div id="toast" class="fixed left-4 right-4 z-[100] bg-gray-900 dark:bg-white text-white dark:text-gray-900 p-4 rounded-2xl shadow-xl flex items-center gap-3" style="top: calc(env(safe-area-inset-top) + 1rem);">
         <i id="toastIcon" class="ph ph-info text-2xl text-blue-400"></i>
@@ -360,8 +377,16 @@
 
     <!-- App Script -->
     <script>
+        // Catch harmless Firebase IndexedDB wipe errors in preview environments
+        window.addEventListener('unhandledrejection', event => {
+            if (event.reason && event.reason.message && event.reason.message.includes('Database deleted by request of the user')) {
+                console.warn('Harmless Firebase IndexedDB wipe detected and safely ignored.');
+                event.preventDefault(); // This stops the red error from crashing the app!
+            }
+        });
+
         // ==========================================
-        // 1. FIREBASE INITIALIZATION (PHASE 1)
+        // 1. FIREBASE INITIALIZATION (PHASE 1 & 2)
         // ==========================================
         let FIREBASE_ENABLED = true; // Change this to true once you paste your config!
 
@@ -376,6 +401,8 @@
         };
 
         let currentUser = null;
+        // App ID required for secure database pathways
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'macrotrack-app';
 
         if (FIREBASE_ENABLED) {
             firebase.initializeApp(firebaseConfig);
@@ -383,8 +410,9 @@
             const db = firebase.firestore();
 
             // Listen for login state changes
-            auth.onAuthStateChanged(user => {
+            auth.onAuthStateChanged(async user => {
                 const overlay = document.getElementById('authOverlay');
+                const usernameModal = document.getElementById('usernameModal');
                 const statusText = document.getElementById('accountStatusText');
                 const signOutBtn = document.getElementById('signOutBtn');
                 const signInBtn = document.getElementById('signInSettingsBtn');
@@ -394,7 +422,26 @@
                     currentUser = user;
                     overlay.classList.add('hidden');
                     overlay.classList.remove('flex');
-                    document.getElementById('userAvatar').innerText = user.displayName ? user.displayName.charAt(0).toUpperCase() : 'U';
+                    
+                    // --- PHASE 2: Check Cloud Database for Username ---
+                    try {
+                        const profileRef = db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('profile').doc('main');
+                        const doc = await profileRef.get();
+                        
+                        if (!doc.exists || !doc.data().username) {
+                            // First time login! Trap them in the username screen.
+                            usernameModal.classList.remove('hidden');
+                            usernameModal.classList.add('flex');
+                        } else {
+                            // Returning user! Sync their data to UI.
+                            const username = doc.data().username;
+                            userGoals.displayName = username;
+                            document.getElementById('userAvatar').innerText = username.charAt(0).toUpperCase();
+                            document.getElementById('setDisplayName').value = username;
+                        }
+                    } catch(e) {
+                        console.error("Profile check failed:", e);
+                    }
                     
                     statusText.innerHTML = `Signed in as <b>${user.email}</b>`;
                     statusText.className = "text-xs text-blue-500 mb-4";
@@ -405,6 +452,8 @@
                     // NO USER LOGGED IN
                     currentUser = null;
                     document.getElementById('userAvatar').innerText = 'U';
+                    document.getElementById('usernameModal').classList.add('hidden');
+                    document.getElementById('usernameModal').classList.remove('flex');
                     statusText.innerText = "Not signed in. Data is stored locally on this device.";
                     statusText.className = "text-xs text-gray-500 dark:text-gray-400 mb-4";
                     signOutBtn.classList.add('hidden');
@@ -452,6 +501,74 @@
             document.getElementById('authOverlay').classList.add('flex');
         };
 
+        // --- PHASE 2: Username Registration Logic ---
+        window.claimUsername = async () => {
+            if (!currentUser) return;
+            const input = document.getElementById('usernameInput');
+            const status = document.getElementById('usernameStatus');
+            const btn = document.getElementById('claimUsernameBtn');
+            const username = input.value.trim().toLowerCase();
+
+            // 1. Basic Validation
+            if (username.length < 3 || username.length > 15) {
+                return status.innerText = "Must be between 3 and 15 characters.";
+            }
+            if (!/^[a-z0-9_]+$/.test(username)) {
+                return status.innerText = "Only lowercase letters, numbers, and underscores allowed.";
+            }
+
+            try {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="ph ph-spinner animate-spin text-xl"></i> Checking availability...';
+                
+                const db = firebase.firestore();
+                // We check the public "usernames" directory to see if anyone else took it
+                const usernameRef = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('usernames').doc(username);
+                const docSnap = await usernameRef.get();
+
+                if (docSnap.exists) {
+                    status.innerText = "Username is already taken!";
+                    btn.disabled = false;
+                    btn.innerHTML = 'Claim Username <i class="ph-bold ph-arrow-right text-xl"></i>';
+                    return;
+                }
+
+                // 2. It's available! Claim it globally.
+                await usernameRef.set({ uid: currentUser.uid });
+                
+                // 3. Save it to the user's private cloud profile.
+                const profileRef = db.collection('artifacts').doc(appId).collection('users').doc(currentUser.uid).collection('profile').doc('main');
+                await profileRef.set({ 
+                    username: username, 
+                    email: currentUser.email 
+                }, { merge: true });
+
+                status.className = "text-xs font-bold text-green-500 h-4 mb-4";
+                status.innerText = "Username claimed!";
+                
+                // Update local UI
+                userGoals.displayName = username;
+                localStorage.setItem('mt_userGoals', JSON.stringify(userGoals));
+                document.getElementById('userAvatar').innerText = username.charAt(0).toUpperCase();
+                document.getElementById('setDisplayName').value = username;
+                
+                // Hide modal and welcome the user!
+                setTimeout(() => {
+                    document.getElementById('usernameModal').classList.add('hidden');
+                    document.getElementById('usernameModal').classList.remove('flex');
+                    showToast(`Welcome to the cloud, @${username}!`, "success");
+                }, 1000);
+
+            } catch (err) {
+                status.innerText = "Error saving username. Try again.";
+                console.error(err);
+                btn.disabled = false;
+                btn.innerHTML = 'Claim Username <i class="ph-bold ph-arrow-right text-xl"></i>';
+            }
+        };
+
+        // ==========================================
+        // 2. APP LOGIC & AI FETCH
         // ==========================================
         // 2. APP LOGIC & AI FETCH (UNTOUCHED)
         // ==========================================
