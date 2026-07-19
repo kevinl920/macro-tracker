@@ -16,16 +16,9 @@
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     
     <style>
-        /* ULTIMATE iOS FIX: Anchor the body to the 4 physical corners of the device */
-        /* By using top/bottom/left/right instead of height, it ignores Safari's buggy calculations */
-        html {
-            background-color: #f9fafb; /* Matches gray-50 fallback */
-        }
-        @media (prefers-color-scheme: dark) {
-            html {
-                background-color: #030712; /* Matches gray-950 fallback */
-            }
-        }
+        html { background-color: #f9fafb; }
+        @media (prefers-color-scheme: dark) { html { background-color: #030712; } }
+        /* The Ultimate iOS Fix */
         body {
             position: fixed;
             top: 0;
@@ -36,14 +29,13 @@
             overscroll-behavior: none;
             -webkit-tap-highlight-color: transparent;
         }
-
-        /* Hides the scrollbar for our Swipe-to-Delete trick */
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         
-        .tab-content { display: none; }
-        .tab-content.active { display: block; animation: fadeIn 0.2s ease-in-out; }
-        .nav-item.active { color: #3b82f6; }
+        /* Added !important to guarantee Tailwind doesn't override your active states */
+        .tab-content { display: none !important; }
+        .tab-content.active { display: block !important; animation: fadeIn 0.2s ease-in-out; }
+        .nav-item.active { color: #3b82f6 !important; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
         
         /* Custom Toast Notification */
@@ -203,8 +195,8 @@
                         <div id="waterBar" class="bg-blue-400 h-4 rounded-full transition-all duration-500" style="width: 0%"></div>
                     </div>
                     <div class="flex justify-center gap-4">
-                        <button onclick="addWater(1)" class="w-12 h-12 bg-blue-50 dark:bg-blue-900/30 text-blue-500 rounded-2xl flex items-center justify-center text-xl active:scale-90 transition-transform"><i class="ph-fill ph-drop"></i></button>
                         <button onclick="addWater(-1)" class="w-12 h-12 bg-gray-50 dark:bg-gray-800 text-gray-400 rounded-2xl flex items-center justify-center text-xl active:scale-90 transition-transform"><i class="ph ph-minus"></i></button>
+                        <button onclick="addWater(1)" class="w-12 h-12 bg-blue-50 dark:bg-blue-900/30 text-blue-500 rounded-2xl flex items-center justify-center text-xl active:scale-90 transition-transform"><i class="ph-fill ph-drop"></i></button>
                     </div>
                 </div>
                 <div class="bg-white dark:bg-gray-900 p-4 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800">
