@@ -357,7 +357,7 @@
 
     <!-- Bottom Navigation -->
     <nav class="fixed bottom-0 w-full bg-white/95 dark:bg-gray-900/95 backdrop-blur-lg border-t border-gray-200 dark:border-gray-800 z-[100] transition-colors duration-300" style="padding-bottom: env(safe-area-inset-bottom);">
-        <div class="flex justify-around items-center h-16 px-2">
+        <div class="flex justify-around items-center h-16 px-2 relative z-10">
             <button class="nav-item active flex items-center justify-center w-16 h-12 text-gray-400 dark:text-gray-500 transition-colors" data-target="tab-log">
                 <i class="ph-fill ph-plus-circle text-2xl pointer-events-none"></i>
             </button>
@@ -372,7 +372,7 @@
             </button>
         </div>
         <!-- Safari iOS Gap Filler: Acts as a curtain hanging below the nav to perfectly cover any floating gap -->
-        <div class="absolute top-full left-0 w-full h-[50vh] bg-white/95 dark:bg-gray-900/95 backdrop-blur-lg"></div>
+        <div class="absolute top-full left-0 w-full h-[50vh] bg-white/95 dark:bg-gray-900/95 backdrop-blur-lg z-0"></div>
     </nav>
 
     <!-- App Script -->
@@ -381,15 +381,16 @@
         window.addEventListener('unhandledrejection', event => {
             if (event.reason && event.reason.message && event.reason.message.includes('Database deleted by request of the user')) {
                 console.warn('Harmless Firebase IndexedDB wipe detected and safely ignored.');
-                event.preventDefault(); // This stops the red error from crashing the app!
+                event.preventDefault(); 
             }
         });
 
         // ==========================================
-        // 1. FIREBASE INITIALIZATION (PHASE 1 & 2)
+        // 1. FIREBASE INITIALIZATION & SYNC LOGIC
         // ==========================================
-        let FIREBASE_ENABLED = true; // Change this to true once you paste your config!
+        let FIREBASE_ENABLED = true; 
 
+        // PASTE YOUR ACTUAL KEYS HERE if your editor wiped them out!
         const firebaseConfig = {
             apiKey: "AIzaSyCpvyKjuq8CuoxuCltBUqqwkGJ7ZiAVpaE",
             authDomain: "macrotrack-48894.firebaseapp.com",
@@ -401,16 +402,17 @@
         };
 
         let currentUser = null;
-        // App ID required for secure database pathways
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'macrotrack-app';
 
         if (FIREBASE_ENABLED) {
             firebase.initializeApp(firebaseConfig);
-            const auth = firebase.auth();
-            const db = firebase.firestore();
+            
+            // Make auth and db accessible everywhere in our script
+            window.auth = firebase.auth();
+            window.db = firebase.firestore();
 
             // Listen for login state changes
-            auth.onAuthStateChanged(async user => {
+            window.auth.onAuthStateChanged(async user => {
                 const overlay = document.getElementById('authOverlay');
                 const usernameModal = document.getElementById('usernameModal');
                 const statusText = document.getElementById('accountStatusText');
@@ -423,13 +425,11 @@
                     overlay.classList.add('hidden');
                     overlay.classList.remove('flex');
                     
-                    // --- PHASE 2: Check Cloud Database for Username ---
                     try {
-                        const profileRef = db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('profile').doc('main');
+                        const profileRef = window.db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('profile').doc('main');
                         const doc = await profileRef.get();
                         
                         if (!doc.exists || !doc.data().username) {
-                            // First time login! Trap them in the username screen.
                             usernameModal.classList.remove('hidden');
                             usernameModal.classList.add('flex');
                         } else {
@@ -438,6 +438,9 @@
                             userGoals.displayName = username;
                             document.getElementById('userAvatar').innerText = username.charAt(0).toUpperCase();
                             document.getElementById('setDisplayName').value = username;
+                            
+                            // NEW Phase 2: Sync Foods from Cloud!
+                            await window.syncCloudFoods(user.uid);
                         }
                     } catch(e) {
                         console.error("Profile check failed:", e);
@@ -459,7 +462,6 @@
                     signOutBtn.classList.add('hidden');
                     signInBtn.classList.remove('hidden');
                     
-                    // Show welcome screen if app just opened
                     if(!sessionStorage.getItem('guestMode')) {
                         overlay.classList.remove('hidden');
                         overlay.classList.add('flex');
@@ -468,22 +470,49 @@
             });
         }
 
+        // NEW PHASE 2: Cloud Sync Function
+        window.syncCloudFoods = async (uid) => {
+            try {
+                const foodsRef = window.db.collection('artifacts').doc(appId).collection('users').doc(uid).collection('foods');
+                const snapshot = await foodsRef.get();
+                
+                if (snapshot.empty && allFoods.length > 0) {
+                    // MIGRATION: Cloud is empty, but phone has foods. Back them up!
+                    window.showToast("Backing up local foods to cloud...", "info");
+                    const batch = window.db.batch();
+                    
+                    allFoods.forEach(food => {
+                        const docRef = foodsRef.doc(food.id);
+                        batch.set(docRef, food);
+                    });
+                    
+                    await batch.commit();
+                    window.showToast("Cloud backup complete!", "success");
+                } else if (!snapshot.empty) {
+                    // LOAD: Cloud has foods. Overwrite local to stay in sync.
+                    allFoods = snapshot.docs.map(doc => doc.data());
+                    localStorage.setItem('mt_allFoods', JSON.stringify(allFoods));
+                    updateDashboardUI();
+                    renderHistory();
+                }
+            } catch (err) {
+                console.error("Error syncing foods:", err);
+                window.showToast("Failed to sync with cloud", "error");
+            }
+        };
+
         window.signInWithGoogle = () => {
             if (!FIREBASE_ENABLED) return showToast("Please paste your Firebase keys and set FIREBASE_ENABLED to true in the code first!", "error");
-            
-            // Set session storage BEFORE redirecting so the app knows we aren't a guest when it reloads
             sessionStorage.removeItem('guestMode'); 
-            
             const provider = new firebase.auth.GoogleAuthProvider();
-            // Using REDIRECT instead of POPUP. This is mandatory for iOS Home Screen PWAs!
-            firebase.auth().signInWithRedirect(provider).catch(error => {
+            window.auth.signInWithRedirect(provider).catch(error => {
                 showToast(error.message, "error");
             });
         };
 
         window.signOut = () => {
             if (FIREBASE_ENABLED && currentUser) {
-                firebase.auth().signOut().then(() => showToast("Signed out", "info"));
+                window.auth.signOut().then(() => showToast("Signed out", "info"));
             }
         };
 
@@ -501,7 +530,6 @@
             document.getElementById('authOverlay').classList.add('flex');
         };
 
-        // --- PHASE 2: Username Registration Logic ---
         window.claimUsername = async () => {
             if (!currentUser) return;
             const input = document.getElementById('usernameInput');
@@ -509,21 +537,14 @@
             const btn = document.getElementById('claimUsernameBtn');
             const username = input.value.trim().toLowerCase();
 
-            // 1. Basic Validation
-            if (username.length < 3 || username.length > 15) {
-                return status.innerText = "Must be between 3 and 15 characters.";
-            }
-            if (!/^[a-z0-9_]+$/.test(username)) {
-                return status.innerText = "Only lowercase letters, numbers, and underscores allowed.";
-            }
+            if (username.length < 3 || username.length > 15) return status.innerText = "Must be between 3 and 15 characters.";
+            if (!/^[a-z0-9_]+$/.test(username)) return status.innerText = "Only lowercase letters, numbers, and underscores allowed.";
 
             try {
                 btn.disabled = true;
                 btn.innerHTML = '<i class="ph ph-spinner animate-spin text-xl"></i> Checking availability...';
                 
-                const db = firebase.firestore();
-                // We check the public "usernames" directory to see if anyone else took it
-                const usernameRef = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('usernames').doc(username);
+                const usernameRef = window.db.collection('artifacts').doc(appId).collection('public').doc('data').collection('usernames').doc(username);
                 const docSnap = await usernameRef.get();
 
                 if (docSnap.exists) {
@@ -533,30 +554,26 @@
                     return;
                 }
 
-                // 2. It's available! Claim it globally.
                 await usernameRef.set({ uid: currentUser.uid });
                 
-                // 3. Save it to the user's private cloud profile.
-                const profileRef = db.collection('artifacts').doc(appId).collection('users').doc(currentUser.uid).collection('profile').doc('main');
-                await profileRef.set({ 
-                    username: username, 
-                    email: currentUser.email 
-                }, { merge: true });
+                const profileRef = window.db.collection('artifacts').doc(appId).collection('users').doc(currentUser.uid).collection('profile').doc('main');
+                await profileRef.set({ username: username, email: currentUser.email }, { merge: true });
 
                 status.className = "text-xs font-bold text-green-500 h-4 mb-4";
                 status.innerText = "Username claimed!";
                 
-                // Update local UI
                 userGoals.displayName = username;
                 localStorage.setItem('mt_userGoals', JSON.stringify(userGoals));
                 document.getElementById('userAvatar').innerText = username.charAt(0).toUpperCase();
                 document.getElementById('setDisplayName').value = username;
                 
-                // Hide modal and welcome the user!
                 setTimeout(() => {
                     document.getElementById('usernameModal').classList.add('hidden');
                     document.getElementById('usernameModal').classList.remove('flex');
-                    showToast(`Welcome to the cloud, @${username}!`, "success");
+                    window.showToast(`Welcome to the cloud, @${username}!`, "success");
+                    
+                    // NEW Phase 2: Sync their past foods if they just made an account!
+                    window.syncCloudFoods(currentUser.uid);
                 }, 1000);
 
             } catch (err) {
@@ -569,8 +586,6 @@
 
         // ==========================================
         // 2. APP LOGIC & AI FETCH
-        // ==========================================
-        // 2. APP LOGIC & AI FETCH (UNTOUCHED)
         // ==========================================
         const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbxYk2MQbAamBncjAf6QhQFgaIL-vjLMvp7EvKWDB5xjdAdXwKb2CNnF_Oe0fs8t4eDhpA/exec";
 
@@ -612,7 +627,6 @@
             });
         });
 
-        // 3-Tier Bulletproof Export Function
         window.exportData = async () => {
             const backup = { goals: userGoals, foods: allFoods, water: todayWater };
             const code = JSON.stringify(backup);
@@ -662,7 +676,6 @@
             document.getElementById('setGoalF').innerText = userGoals.f;
             document.getElementById('floatGoalCals').innerText = userGoals.cals;
             
-            // Add a check to see if the element exists before trying to update it
             const waterGoalElement = document.getElementById('waterGoalText');
             if (waterGoalElement) {
                 waterGoalElement.innerText = userGoals.water || 8;
@@ -731,7 +744,6 @@
 
         calInput.addEventListener('input', updateSliderUI);
 
-        // Magnetic Rate of Loss/Gain Slider
         window.updateGoalSlider = function(e) {
             const slider = document.getElementById('calcGoalSlider');
             if (!slider) return;
@@ -868,92 +880,101 @@
         };
 
         document.getElementById('analyzeBtn').onclick = async () => {
-                const foodName = document.getElementById('foodName').value.trim();
-                const description = document.getElementById('foodDesc').value.trim();
-                const analyzeBtn = document.getElementById('analyzeBtn');
+            const foodName = document.getElementById('foodName').value.trim();
+            const description = document.getElementById('foodDesc').value.trim();
+            const analyzeBtn = document.getElementById('analyzeBtn');
 
-                if (!base64Image && !foodName && !description) {
-                    return window.showToast("Please type something or snap a photo!", "error");
+            if (!base64Image && !foodName && !description) {
+                return window.showToast("Please type something or snap a photo!", "error");
+            }
+
+            try {
+                analyzeBtn.disabled = true;
+                analyzeBtn.innerHTML = '<i class="ph ph-spinner animate-spin text-xl"></i> Analyzing...';
+                
+                const prompt = `Analyze this food. Name: ${foodName || 'Unknown'}. Description: ${description || 'None'}. If no image is provided and portion size isn't explicitly specified, assume a standard serving. Provide realistic estimates.`;
+                
+                const response = await fetch(GOOGLE_SHEETS_URL, {
+                    method: "POST",
+                    headers: { "Content-Type": "text/plain;charset=utf-8" },
+                    body: JSON.stringify({
+                        action: "analyze",
+                        prompt: prompt,
+                        image: base64Image,
+                        mimeType: imageMimeType
+                    })
+                });
+
+                if (!response.ok) throw new Error("Network Error: " + response.statusText);
+                
+                const result = await response.json();
+                
+                if (result.status === "error") throw new Error(result.message);
+
+                const rawData = result.data;
+                const isoDate = new Date().toISOString();
+                const uniqueId = Date.now().toString();
+
+                const data = {
+                    foodName: rawData.foodName,
+                    calories: Math.round(rawData.calories * 10) / 10,
+                    protein: Math.round(rawData.protein * 10) / 10,
+                    carbs: Math.round(rawData.carbs * 10) / 10,
+                    fat: Math.round(rawData.fat * 10) / 10,
+                    fiber: Math.round(rawData.fiber * 10) / 10,
+                    sugar: Math.round(rawData.sugar * 10) / 10
+                };
+
+                const newEntry = { id: uniqueId, ...data, dateLogged: isoDate, description: description || "" };
+
+                // 1. Save locally for instant UI update
+                allFoods.push(newEntry);
+                localStorage.setItem('mt_allFoods', JSON.stringify(allFoods));
+                
+                // 2. NEW PHASE 2: Save to Firestore if logged in
+                if (FIREBASE_ENABLED && currentUser) {
+                    try {
+                        window.db.collection('artifacts').doc(appId).collection('users').doc(currentUser.uid).collection('foods').doc(uniqueId).set(newEntry);
+                    } catch (e) { console.error("Cloud save failed", e); }
                 }
+                
+                updateDashboardUI();
+                renderHistory();
 
+                // 3. Keep old Google Sheet backup running until credits exhaust
                 try {
-                    analyzeBtn.disabled = true;
-                    analyzeBtn.innerHTML = '<i class="ph ph-spinner animate-spin text-xl"></i> Analyzing...';
-                    
-                    const prompt = `Analyze this food. Name: ${foodName || 'Unknown'}. Description: ${description || 'None'}. If no image is provided and portion size isn't explicitly specified, assume a standard serving. Provide realistic estimates.`;
-                    
-                    const response = await fetch(GOOGLE_SHEETS_URL, {
-                        method: "POST",
+                    fetch(GOOGLE_SHEETS_URL, {
+                        method: "POST", 
+                        mode: "no-cors",
                         headers: { "Content-Type": "text/plain;charset=utf-8" },
-                        body: JSON.stringify({
-                            action: "analyze",
-                            prompt: prompt,
-                            image: base64Image,
-                            mimeType: imageMimeType
+                        body: JSON.stringify({ 
+                            action: "add", 
+                            id: uniqueId, 
+                            ...data, 
+                            description: description,
+                            date: new Date(isoDate).toLocaleDateString(),
+                            time: new Date(isoDate).toLocaleTimeString(),
+                            user: window.userGoals.displayName || "Anonymous"
                         })
                     });
+                } catch(e) { console.error("Sheet backup failed", e); }
 
-                    if (!response.ok) throw new Error("Network Error: " + response.statusText);
-                    
-                    const result = await response.json();
-                    
-                    if (result.status === "error") throw new Error(result.message);
+                window.showToast(`Logged ${data.foodName} (${data.calories} kcal)`, "success");
+                
+                document.getElementById('foodName').value = "";
+                document.getElementById('foodDesc').value = "";
+                document.getElementById('imagePreview').style.backgroundImage = "none";
+                document.getElementById('cameraIconContainer').classList.remove('hidden');
+                base64Image = null; imageMimeType = null;
+                window.scrollTo({ top: 0, behavior: 'smooth' });
 
-                    const rawData = result.data;
-                    const isoDate = new Date().toISOString();
-                    const uniqueId = Date.now().toString();
-
-                    const data = {
-                        foodName: rawData.foodName,
-                        calories: Math.round(rawData.calories * 10) / 10,
-                        protein: Math.round(rawData.protein * 10) / 10,
-                        carbs: Math.round(rawData.carbs * 10) / 10,
-                        fat: Math.round(rawData.fat * 10) / 10,
-                        fiber: Math.round(rawData.fiber * 10) / 10,
-                        sugar: Math.round(rawData.sugar * 10) / 10
-                    };
-
-                    const newEntry = { id: uniqueId, ...data, dateLogged: isoDate, description: description || "" };
-
-                    allFoods.push(newEntry);
-                    localStorage.setItem('mt_allFoods', JSON.stringify(allFoods));
-                    
-                    updateDashboardUI();
-                    renderHistory();
-
-                    try {
-                        fetch(GOOGLE_SHEETS_URL, {
-                            method: "POST", 
-                            mode: "no-cors",
-                            headers: { "Content-Type": "text/plain;charset=utf-8" },
-                            body: JSON.stringify({ 
-                                action: "add", 
-                                id: uniqueId, 
-                                ...data, 
-                                description: description,
-                                date: new Date(isoDate).toLocaleDateString(),
-                                time: new Date(isoDate).toLocaleTimeString(),
-                                user: window.userGoals.displayName || "Anonymous"
-                            })
-                        });
-                    } catch(e) { console.error("Sheet backup failed", e); }
-
-                    window.showToast(`Logged ${data.foodName} (${data.calories} kcal)`, "success");
-                    
-                    document.getElementById('foodName').value = "";
-                    document.getElementById('foodDesc').value = "";
-                    document.getElementById('imagePreview').style.backgroundImage = "none";
-                    document.getElementById('cameraIconContainer').classList.remove('hidden');
-                    base64Image = null; imageMimeType = null;
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-
-                } catch (err) {
-                    window.showToast("Error: " + err.message, "error");
-                } finally {
-                    analyzeBtn.disabled = false;
-                    analyzeBtn.innerHTML = '<i class="ph ph-sparkle text-xl"></i> Analyze & Log';
-                }
-            };
+            } catch (err) {
+                window.showToast("Error: " + err.message, "error");
+            } finally {
+                analyzeBtn.disabled = false;
+                analyzeBtn.innerHTML = '<i class="ph ph-sparkle text-xl"></i> Analyze & Log';
+            }
+        };
 
         function getTodayFoods() {
             const todayStr = new Date().toDateString();
@@ -1124,6 +1145,13 @@
             allFoods = allFoods.filter(f => f.id !== id);
             localStorage.setItem('mt_allFoods', JSON.stringify(allFoods));
             
+            // NEW PHASE 2: Delete from Firestore
+            if (FIREBASE_ENABLED && currentUser) {
+                try {
+                    window.db.collection('artifacts').doc(appId).collection('users').doc(currentUser.uid).collection('foods').doc(id).delete();
+                } catch (err) { console.error("Cloud delete failed", err); }
+            }
+            
             updateDashboardUI();
             renderHistory();
             window.showToast("Food deleted", "success");
@@ -1164,6 +1192,14 @@
             food.sugar = food.baseSugar * newServings;
             
             localStorage.setItem('mt_allFoods', JSON.stringify(allFoods));
+            
+            // NEW PHASE 2: Update Firestore
+            if (FIREBASE_ENABLED && currentUser) {
+                try {
+                    window.db.collection('artifacts').doc(appId).collection('users').doc(currentUser.uid).collection('foods').doc(id).set(food, { merge: true });
+                } catch (err) { console.error("Cloud update failed", err); }
+            }
+            
             updateDashboardUI();
             renderHistory();
         };
@@ -1185,6 +1221,13 @@
             
             allFoods.push(newEntry);
             localStorage.setItem('mt_allFoods', JSON.stringify(allFoods));
+            
+            // NEW PHASE 2: Save to Firestore
+            if (FIREBASE_ENABLED && currentUser) {
+                try {
+                    window.db.collection('artifacts').doc(appId).collection('users').doc(currentUser.uid).collection('foods').doc(uniqueId).set(newEntry);
+                } catch (err) { console.error("Cloud save failed", err); }
+            }
             
             updateDashboardUI();
             renderHistory();
