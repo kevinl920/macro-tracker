@@ -9,7 +9,15 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="MacroTrack">
     <link rel="apple-touch-icon" href="https://via.placeholder.com/192/3b82f6/ffffff?text=MT">
-    
+    <script>
+      // Measures the real visible screen height and keeps the app locked to it
+      function setAppHeight() {
+        document.documentElement.style.setProperty('--app-height', window.innerHeight + 'px');
+      }
+      setAppHeight();
+      window.addEventListener('resize', setAppHeight);
+      window.addEventListener('orientationchange', setAppHeight);
+    </script>
     <title>Macro Tracker</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -18,8 +26,11 @@
     <style>
         /* Lock the page to exactly the visible screen so nothing can push
            the header off the top or leave a gap under the bottom bar */
+        :root {
+            --app-height: 100dvh; /* backup value used only before the script above runs */
+        }
         html, body {
-            height: 100%;
+            height: var(--app-height);
             overscroll-behavior: none;
         }
         body {
@@ -53,7 +64,7 @@
 </head>
 
 <!-- UPDATED BODY TAG: Flexbox ensures header is top, nav is bottom, and main fills the middle perfectly -->
-<body class="bg-gray-50 dark:bg-gray-950 font-sans text-gray-800 dark:text-gray-100 antialiased selection:bg-blue-200 dark:selection:bg-blue-900 transition-colors duration-300 h-[100dvh] w-full flex flex-col overflow-hidden">
+<body class="bg-gray-50 dark:bg-gray-950 font-sans text-gray-800 dark:text-gray-100 antialiased selection:bg-blue-200 dark:selection:bg-blue-900 transition-colors duration-300 w-full flex flex-col overflow-hidden">
 
     <!-- Notification Toast -->
     <div id="toast" class="fixed left-4 right-4 z-[100] bg-gray-900 dark:bg-white text-white dark:text-gray-900 p-4 rounded-2xl shadow-xl flex items-center gap-3" style="top: calc(env(safe-area-inset-top) + 1rem);">
