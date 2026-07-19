@@ -16,32 +16,22 @@
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     
     <style>
-        html { background-color: #f9fafb; }
-        @media (prefers-color-scheme: dark) { html { background-color: #030712; } }
-        
-        /* The Bulletproof iOS Viewport Fix */
+        /* NATIVE SCROLLING: Allow the page to scroll naturally to fix Safari's bottom gap bug */
         html, body {
-            width: 100%;
-            height: 100%;
+            background-color: #f9fafb;
+            -webkit-tap-highlight-color: transparent;
             margin: 0;
             padding: 0;
-            overflow: hidden;
-            overscroll-behavior: none;
         }
-        html {
-            height: -webkit-fill-available;
+        @media (prefers-color-scheme: dark) {
+            html, body { background-color: #030712; }
         }
-        body {
-            min-height: 100%;
-            min-height: -webkit-fill-available;
-            height: 100dvh; /* Dynamic Viewport perfectly snaps to the iOS Safari glass */
-            -webkit-tap-highlight-color: transparent;
-        }
-        
+
+        /* Hides the scrollbar for our Swipe-to-Delete trick */
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         
-        /* Added !important to guarantee Tailwind doesn't override your active states */
+        /* Using !important to guarantee Tailwind doesn't override your Javascript classes */
         .tab-content { display: none !important; }
         .tab-content.active { display: block !important; animation: fadeIn 0.2s ease-in-out; }
         .nav-item.active { color: #3b82f6 !important; }
@@ -64,8 +54,7 @@
     </style>
 </head>
 
-<!-- Flex-col layout inside the fixed body ensures perfect sandwiching -->
-<body class="bg-gray-50 dark:bg-gray-950 font-sans text-gray-800 dark:text-gray-100 antialiased selection:bg-blue-200 dark:selection:bg-blue-900 transition-colors duration-300 flex flex-col">
+<body class="text-gray-800 dark:text-gray-100 antialiased selection:bg-blue-200 dark:selection:bg-blue-900 transition-colors duration-300">
 
     <!-- Notification Toast -->
     <div id="toast" class="fixed left-4 right-4 z-[100] bg-gray-900 dark:bg-white text-white dark:text-gray-900 p-4 rounded-2xl shadow-xl flex items-center gap-3" style="top: calc(env(safe-area-inset-top) + 1rem);">
@@ -116,18 +105,19 @@
         </div>
     </div>
     
-    <!-- Header (Flex-shrink keeps it firmly at the top) -->
-    <header class="w-full bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg border-b border-gray-200 dark:border-gray-800 px-6 pb-4 z-50 flex justify-between items-center transition-colors duration-300 flex-shrink-0" style="padding-top: max(env(safe-area-inset-top), 1rem);">
+    <!-- HEADER: Fixed precisely to the absolute top of the screen -->
+    <header class="fixed top-0 left-0 w-full bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg border-b border-gray-200 dark:border-gray-800 px-6 pb-4 z-50 flex justify-between items-center transition-colors duration-300" style="padding-top: max(env(safe-area-inset-top), 1rem);">
         <h1 class="text-xl font-bold text-gray-900 dark:text-white tracking-tight" id="headerTitle">Log Food</h1>
         <div class="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-blue-600 dark:text-blue-300 font-bold text-xs uppercase" id="userAvatar">U</div>
     </header>
 
-    <!-- Main Content Area (Flex-1 allows it to scroll perfectly between the header and nav) -->
-    <main class="w-full flex-1 overflow-y-auto relative z-0" id="mainContent">
+    <!-- MAIN: Mathematically calculated padding ensures content never touches fixed header/footer -->
+    <main class="w-full relative z-0" style="padding-top: calc(max(env(safe-area-inset-top), 1rem) + 4.5rem); padding-bottom: calc(env(safe-area-inset-bottom) + 5rem);" id="mainContent">
         
         <!-- ==================== TAB 1: LOG FOOD ==================== -->
         <div id="tab-log" class="tab-content active">
-            <div class="sticky top-0 z-40 p-4 bg-gray-50/90 dark:bg-gray-950/90 backdrop-blur pb-2 transition-colors duration-300">
+            <!-- Sticky header uses calculated padding to dock neatly right below the fixed header -->
+            <div class="sticky z-40 p-4 bg-gray-50/90 dark:bg-gray-950/90 backdrop-blur pb-2 transition-colors duration-300" style="top: calc(max(env(safe-area-inset-top), 1rem) + 3rem);">
                 <div class="bg-white dark:bg-gray-900 p-4 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800 transition-colors duration-300">
                     <div class="flex justify-between items-end mb-2">
                         <div>
@@ -219,12 +209,12 @@
 
         <!-- ==================== TAB 3: HISTORY ==================== -->
         <div id="tab-history" class="tab-content">
-            <div id="historyList" class="p-4 space-y-3 pb-8"></div>
+            <div id="historyList" class="p-4 space-y-3"></div>
         </div>
 
         <!-- ==================== TAB 4: SETTINGS ==================== -->
         <div id="tab-settings" class="tab-content">
-            <div class="p-4 space-y-6 pb-8">
+            <div class="p-4 space-y-6">
                 <div class="bg-white dark:bg-gray-900 p-4 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800">
                     <h3 class="font-bold text-gray-900 dark:text-white mb-2">Profile Name</h3>
                     <div class="flex gap-2">
@@ -291,8 +281,8 @@
         </div>
     </main>
 
-    <!-- Bottom Navigation (Flex-shrink keeps it firmly at the bottom) -->
-    <nav class="w-full bg-white/95 dark:bg-gray-900/95 backdrop-blur-lg border-t border-gray-200 dark:border-gray-800 z-50 transition-colors duration-300 flex-shrink-0" style="padding-bottom: env(safe-area-inset-bottom);">
+    <!-- NAV: Fixed to the absolute physical bottom of the device glass -->
+    <nav class="fixed bottom-0 left-0 w-full bg-white/95 dark:bg-gray-900/95 backdrop-blur-lg border-t border-gray-200 dark:border-gray-800 z-50 transition-colors duration-300" style="padding-bottom: env(safe-area-inset-bottom);">
         <div class="flex justify-around items-center h-16 px-2">
             <button class="nav-item active flex items-center justify-center w-16 h-12 text-gray-400 dark:text-gray-500 transition-colors" data-target="tab-log">
                 <i class="ph-fill ph-plus-circle text-2xl pointer-events-none"></i>
@@ -309,9 +299,8 @@
         </div>
     </nav>
 
-    <!-- App Script: Reverted safely back to Local Offline Storage -->
     <script>
-        const GEMINI_API_KEY = ""; // We deleted the key! It is now safe in Google Apps Script.
+        const GEMINI_API_KEY = ""; // Kept empty, secured via Apps Script
         const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbxYk2MQbAamBncjAf6QhQFgaIL-vjLMvp7EvKWDB5xjdAdXwKb2CNnF_Oe0fs8t4eDhpA/exec";
 
         let userGoals = JSON.parse(localStorage.getItem('mt_userGoals')) || { cals: 2000, p: 150, c: 200, f: 65, water: 8 };
@@ -342,7 +331,9 @@
                 
                 document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
                 document.getElementById(targetId).classList.add('active');
-                document.getElementById('mainContent').scrollTo(0, 0);
+                
+                // Native scrolling resets back to the top of the actual page
+                window.scrollTo(0, 0);
 
                 const titles = { 'tab-log': 'Log Food', 'tab-dash': 'Dashboard', 'tab-history': 'History', 'tab-settings': 'Settings' };
                 document.getElementById('headerTitle').innerText = titles[targetId];
@@ -352,22 +343,18 @@
             });
         });
 
+        // 3-Tier Fallback Export for Strict iOS Browsers
         window.exportData = async () => {
             const backup = { goals: userGoals, foods: allFoods, water: todayWater };
             const code = JSON.stringify(backup);
             
-            // Try modern clipboard API first
             if (navigator.clipboard && window.isSecureContext) {
                 try {
                     await navigator.clipboard.writeText(code);
                     showToast("Backup copied to clipboard!", "success");
                     return;
-                } catch (err) {
-                    console.warn("Clipboard API failed, falling back...");
-                }
+                } catch (err) { }
             }
-            
-            // Fallback for PWAs/older browsers
             try {
                 const textArea = document.createElement("textarea");
                 textArea.value = code;
@@ -379,14 +366,11 @@
                 textArea.select();
                 const successful = document.execCommand('copy');
                 document.body.removeChild(textArea);
-                
                 if(successful) {
                     showToast("Backup copied to clipboard!", "success");
                     return;
                 }
             } catch (err) {}
-            
-            // Ultimate fallback
             prompt("Please manually copy your backup data below:", code);
         };
 
@@ -648,7 +632,7 @@
                     document.getElementById('imagePreview').style.backgroundImage = "none";
                     document.getElementById('cameraIconContainer').classList.remove('hidden');
                     base64Image = null; imageMimeType = null;
-                    document.getElementById('mainContent').scrollTo({ top: 0, behavior: 'smooth' });
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
 
                 } catch (err) {
                     window.showToast("Error: " + err.message, "error");
@@ -821,6 +805,7 @@
             if (e.target.id === 'nutritionModal') window.closeModal();
         });
 
+        // Delete Food Logic
         window.deleteFood = (id, e) => {
             if(e) e.stopPropagation();
             
@@ -839,6 +824,7 @@
             } catch(err) { console.error("Sheet delete failed"); }
         };
 
+        // Sleek Quantity Stepper Logic
         window.updateQty = (id, delta, e) => {
             e.stopPropagation();
             const food = allFoods.find(f => f.id === id);
@@ -855,7 +841,7 @@
             }
             
             const newServings = food.servings + delta;
-            if (newServings < 1) return;
+            if (newServings < 1) return; 
             
             food.servings = newServings;
             food.calories = food.baseCalories * newServings;
@@ -868,43 +854,6 @@
             localStorage.setItem('mt_allFoods', JSON.stringify(allFoods));
             updateDashboardUI();
             renderHistory();
-        };
-
-        window.repeatFood = (id, e) => {
-            e.stopPropagation();
-            const oldFood = allFoods.find(f => f.id === id);
-            if (!oldFood) return;
-            
-            const isoDate = new Date().toISOString();
-            const uniqueId = Date.now().toString();
-            
-            const newEntry = { 
-                ...oldFood, 
-                id: uniqueId, 
-                dateLogged: isoDate,
-                servings: oldFood.servings || 1 
-            };
-            
-            allFoods.push(newEntry);
-            localStorage.setItem('mt_allFoods', JSON.stringify(allFoods));
-            
-            updateDashboardUI();
-            renderHistory();
-            window.showToast(`Logged ${newEntry.foodName} again!`, "success");
-            
-            try {
-                fetch(GOOGLE_SHEETS_URL, {
-                    method: "POST", mode: "no-cors", 
-                    body: JSON.stringify({ 
-                        action: "add", id: uniqueId, 
-                        foodName: newEntry.foodName, calories: newEntry.calories,
-                        protein: newEntry.protein, carbs: newEntry.carbs, fat: newEntry.fat,
-                        description: newEntry.description || "",
-                        date: new Date(isoDate).toLocaleDateString(), time: new Date(isoDate).toLocaleTimeString(),
-                        user: window.userGoals.displayName || "Anonymous"
-                    })
-                });
-            } catch(e) {}
         };
 
         function renderHistory() {
@@ -928,31 +877,31 @@
                                 <div>
                                     <h4 class="font-bold text-gray-900 dark:text-gray-100 leading-tight mb-1">Spicy Ahi Poke Bowl</h4>
                                     <p class="text-[10px] text-gray-400 dark:text-gray-500 mb-1 italic">Ahi tuna, edamame, avocado, and spicy mayo over sushi rice.</p>
-                                    <p class="text-xs text-gray-500 flex gap-2"><span class="font-bold">580 kcal</span><span>| P:32g C:65g F:22g</span></p>
+                                    <p class="text-xs text-gray-500 flex gap-2"><span class="font-bold">520 kcal</span><span>| P:35g C:45g F:22g</span></p>
                                 </div>
                             </div>
 
                             <div class="bg-white dark:bg-gray-900 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 flex justify-between items-center mb-3">
                                 <div>
-                                    <h4 class="font-bold text-gray-900 dark:text-gray-100 leading-tight mb-1">Chicken Mole Poblano</h4>
+                                    <h4 class="font-bold text-gray-900 dark:text-gray-100 leading-tight mb-1">Oaxacan Chicken Mole</h4>
                                     <p class="text-[10px] text-gray-400 dark:text-gray-500 mb-1 italic">Shredded chicken in a rich, dark chili and chocolate sauce with sesame seeds.</p>
-                                    <p class="text-xs text-gray-500 flex gap-2"><span class="font-bold">420 kcal</span><span>| P:28g C:35g F:18g</span></p>
+                                    <p class="text-xs text-gray-500 flex gap-2"><span class="font-bold">610 kcal</span><span>| P:40g C:35g F:32g</span></p>
                                 </div>
                             </div>
 
                             <div class="bg-white dark:bg-gray-900 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 flex justify-between items-center mb-3">
                                 <div>
-                                    <h4 class="font-bold text-gray-900 dark:text-gray-100 leading-tight mb-1">Shakshuka</h4>
+                                    <h4 class="font-bold text-gray-900 dark:text-gray-100 leading-tight mb-1">Shakshuka with Feta</h4>
                                     <p class="text-[10px] text-gray-400 dark:text-gray-500 mb-1 italic">Two poached eggs in a spiced tomato and bell pepper stew.</p>
-                                    <p class="text-xs text-gray-500 flex gap-2"><span class="font-bold">310 kcal</span><span>| P:18g C:22g F:16g</span></p>
+                                    <p class="text-xs text-gray-500 flex gap-2"><span class="font-bold">340 kcal</span><span>| P:18g C:12g F:24g</span></p>
                                 </div>
                             </div>
 
                             <div class="bg-white dark:bg-gray-900 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 flex justify-between items-center">
                                 <div>
-                                    <h4 class="font-bold text-gray-900 dark:text-gray-100 leading-tight mb-1">Takoyaki</h4>
+                                    <h4 class="font-bold text-gray-900 dark:text-gray-100 leading-tight mb-1">Takoyaki (6pcs)</h4>
                                     <p class="text-[10px] text-gray-400 dark:text-gray-500 mb-1 italic">Six octopus balls topped with bonito flakes, mayo, and sweet sauce.</p>
-                                    <p class="text-xs text-gray-500 flex gap-2"><span class="font-bold">350 kcal</span><span>| P:12g C:42g F:14g</span></p>
+                                    <p class="text-xs text-gray-500 flex gap-2"><span class="font-bold">380 kcal</span><span>| P:14g C:40g F:18g</span></p>
                                 </div>
                             </div>
                         </div>
@@ -980,10 +929,7 @@
                 card.innerHTML = `
                     <div class="flex overflow-x-auto snap-x snap-mandatory hide-scrollbar">
                         
-                        <!-- FRONT CARD (Snaps into view, stretches 100% width) -->
                         <div class="snap-start w-full shrink-0 bg-white dark:bg-gray-900 p-3 flex justify-between items-center relative z-10 transition-colors">
-                            
-                            <!-- Left: Food Details (Tappable) -->
                             <div class="flex flex-col flex-1 min-w-0 pr-3 cursor-pointer" onclick="window.openModal('${food.id}')">
                                 <div class="flex items-center gap-2 mb-1">
                                     <h4 class="font-bold text-gray-900 dark:text-gray-100 leading-tight truncate">${food.foodName}</h4>
@@ -995,7 +941,6 @@
                                 </p>
                             </div>
                             
-                            <!-- Right: Just the Stepper -->
                             <div class="flex items-center bg-gray-100 dark:bg-gray-800 rounded-full h-8 px-1 shrink-0">
                                 <button onclick="window.updateQty('${food.id}', -1, event)" class="w-6 h-6 flex items-center justify-center rounded-full text-gray-500 active:bg-gray-200 dark:active:bg-gray-700 transition-colors">-</button>
                                 <span class="text-xs font-bold w-5 text-center">${food.servings || 1}</span>
@@ -1003,7 +948,6 @@
                             </div>
                         </div>
 
-                        <!-- BACK CARD (Swipe left to reveal, snaps open) -->
                         <div class="snap-end w-24 shrink-0 flex items-center justify-center text-white cursor-pointer active:bg-red-600 transition-colors" onclick="window.deleteFood('${food.id}', event)">
                             <div class="flex flex-col items-center">
                                 <i class="ph ph-trash text-2xl mb-1"></i>
