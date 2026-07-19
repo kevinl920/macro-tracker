@@ -14,60 +14,44 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <!-- Phase 1: Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
     
     <style>
-        /* Apple Safari Fix for Floating Bottom Bars: Native Document Scrolling */
-        html { height: -webkit-fill-available; }
-        body { 
-            -webkit-tap-highlight-color: transparent; 
-            min-height: 100vh;
-            min-height: -webkit-fill-available;
+        /* Modern viewport height ensures it snaps to the exact glass inside Safari */
+        html, body {
+            height: 100dvh;
+            height: -webkit-fill-available;
+            overflow: hidden; 
+            -webkit-tap-highlight-color: transparent;
         }
 
-        /* Hides the scrollbar for our Swipe-to-Delete trick */
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         
         .tab-content { display: none; }
-        .tab-content.active { display: block !important; animation: fadeIn 0.2s ease-in-out; }
+        .tab-content.active { display: block !important; animation: fadeIn 0.2s ease-in-out !important; }
         .nav-item.active { color: #3b82f6 !important; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
         
-        /* Custom Toast Notification */
-        #toast {
-            visibility: hidden;
-            transform: translateY(-100%);
-            transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-        }
-        #toast.show {
-            visibility: visible;
-            transform: translateY(0);
-        }
+        #toast { visibility: hidden; transform: translateY(-100%); transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55); }
+        #toast.show { visibility: visible; transform: translateY(0); }
 
-        /* Modal Transitions */
         #nutritionModal.show { opacity: 1; }
         #nutritionModal.show #nutritionCard { transform: scale(1); }
 
         /* Custom Goal Slider Thumb */
         .goal-slider::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 24px;
-            height: 24px;
-            background: #ffffff;
-            border: 2px solid #e5e7eb;
-            border-radius: 50%;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-            cursor: grab;
+            -webkit-appearance: none; appearance: none; width: 24px; height: 24px;
+            background: #ffffff; border: 2px solid #e5e7eb; border-radius: 50%;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2); cursor: grab;
         }
         .goal-slider::-moz-range-thumb {
-            width: 24px;
-            height: 24px;
-            background: #ffffff;
-            border: 2px solid #e5e7eb;
-            border-radius: 50%;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-            cursor: grab;
+            width: 24px; height: 24px; background: #ffffff; border: 2px solid #e5e7eb;
+            border-radius: 50%; box-shadow: 0 2px 5px rgba(0,0,0,0.2); cursor: grab;
         }
         @media (prefers-color-scheme: dark) {
             .goal-slider::-webkit-slider-thumb { border-color: #374151; background: #1f2937; }
@@ -76,7 +60,23 @@
     </style>
 </head>
 
-<body class="bg-gray-50 dark:bg-gray-950 font-sans text-gray-800 dark:text-gray-100 antialiased selection:bg-blue-200 dark:selection:bg-blue-900 transition-colors duration-300 min-h-screen w-full">
+<!-- Flexbox layout locks header top, nav bottom, and scrolls the middle -->
+<body class="bg-gray-50 dark:bg-gray-950 font-sans text-gray-800 dark:text-gray-100 antialiased selection:bg-blue-200 dark:selection:bg-blue-900 transition-colors duration-300 w-full flex flex-col">
+
+    <!-- Phase 1: Firebase Auth Welcome Screen Overlay -->
+    <div id="authOverlay" class="fixed inset-0 bg-white dark:bg-gray-950 z-[300] hidden flex-col items-center justify-center p-6 transition-opacity duration-300">
+        <i class="ph-fill ph-chart-pie-slice text-6xl text-blue-500 mb-4 animate-bounce"></i>
+        <h1 class="text-3xl font-black text-gray-900 dark:text-white mb-2 tracking-tight">MacroTrack</h1>
+        <p class="text-center text-gray-500 dark:text-gray-400 mb-8 max-w-xs text-sm">Sign in to save your logs to the cloud and connect with friends.</p>
+        
+        <button onclick="signInWithGoogle()" class="w-full max-w-xs bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white font-bold py-4 rounded-2xl mb-4 flex items-center justify-center gap-2 active:scale-95 transition-transform">
+            <i class="ph-fill ph-google-logo text-xl"></i> Continue with Google
+        </button>
+        
+        <button onclick="continueAsGuest()" class="text-sm font-bold text-gray-400 dark:text-gray-500 p-2 active:scale-95 transition-transform">
+            Continue Offline (Local Storage)
+        </button>
+    </div>
 
     <!-- Notification Toast -->
     <div id="toast" class="fixed left-4 right-4 z-[100] bg-gray-900 dark:bg-white text-white dark:text-gray-900 p-4 rounded-2xl shadow-xl flex items-center gap-3" style="top: calc(env(safe-area-inset-top) + 1rem);">
@@ -84,6 +84,7 @@
         <div id="toastMsg" class="font-medium text-sm">Message</div>
     </div>
 
+    <!-- Nutrition Facts Modal -->
     <div id="nutritionModal" class="fixed inset-0 bg-black/70 z-[200] hidden flex-col items-center justify-center p-4 backdrop-blur-sm opacity-0 transition-opacity duration-200">
         <div class="bg-white dark:bg-gray-900 text-black dark:text-white p-5 w-full max-w-xs rounded-lg shadow-2xl relative border-2 border-black dark:border-white font-sans scale-95 transition-transform duration-200" id="nutritionCard">
             <button onclick="closeModal()" class="absolute -top-4 -right-4 w-10 h-10 bg-gray-200 dark:bg-gray-800 border-2 border-white dark:border-gray-900 rounded-full flex items-center justify-center text-gray-800 dark:text-gray-200 shadow-lg active:scale-90 transition-transform"><i class="ph ph-x font-bold text-lg"></i></button>
@@ -126,19 +127,19 @@
         </div>
     </div>
     
-    <!-- Header (Fixed to absolute top) -->
-    <header class="fixed top-0 left-0 w-full bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg border-b border-gray-200 dark:border-gray-800 px-6 pb-3 z-50 flex justify-between items-center transition-colors duration-300" style="padding-top: max(env(safe-area-inset-top), 1rem);">
+    <!-- Header -->
+    <header class="w-full bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg border-b border-gray-200 dark:border-gray-800 px-6 pb-3 z-50 flex justify-between items-center transition-colors duration-300 flex-shrink-0" style="padding-top: max(env(safe-area-inset-top), 1rem);">
         <h1 class="text-xl font-bold text-gray-900 dark:text-white tracking-tight" id="headerTitle">Log Food</h1>
-        <div class="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-blue-600 dark:text-blue-300 font-bold text-xs uppercase" id="userAvatar">U</div>
+        <div class="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-blue-600 dark:text-blue-300 font-bold text-xs uppercase cursor-pointer" id="userAvatar" onclick="document.querySelector('[data-target=\'tab-settings\']').click()">U</div>
     </header>
 
-    <!-- Main Content Area (Padding top/bottom to clear the fixed bars natively) -->
-    <main class="w-full pt-[92px] pb-32 z-0" id="mainContent">
+    <!-- Main Content Area -->
+    <main class="w-full flex-1 overflow-y-auto relative z-0" id="mainContent">
         
         <!-- ==================== TAB 1: LOG FOOD ==================== -->
         <div id="tab-log" class="tab-content active">
-            <!-- Pushed sticky top down to account for fixed header -->
-            <div class="sticky top-[92px] z-40 p-4 bg-gray-50/90 dark:bg-gray-950/90 backdrop-blur pb-2 transition-colors duration-300">
+            <!-- Calorie Card fixed nicely underneath the top header -->
+            <div class="sticky top-0 z-40 p-4 bg-gray-50/90 dark:bg-gray-950/90 backdrop-blur pb-2 transition-colors duration-300">
                 <div class="bg-white dark:bg-gray-900 p-4 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800 transition-colors duration-300">
                     <div class="flex justify-between items-end mb-2">
                         <div>
@@ -230,12 +231,21 @@
 
         <!-- ==================== TAB 3: HISTORY ==================== -->
         <div id="tab-history" class="tab-content">
-            <div id="historyList" class="p-4 space-y-3 pb-24"></div>
+            <div id="historyList" class="p-4 space-y-3 pb-8"></div>
         </div>
 
         <!-- ==================== TAB 4: SETTINGS ==================== -->
         <div id="tab-settings" class="tab-content">
-            <div class="p-4 space-y-6 pb-24">
+            <div class="p-4 space-y-6 pb-8">
+                
+                <!-- NEW Phase 1: Firebase Auth Card -->
+                <div class="bg-white dark:bg-gray-900 p-4 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800">
+                    <h3 class="font-bold text-gray-900 dark:text-white mb-2">Cloud Account</h3>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-4" id="accountStatusText">Not signed in. Data is stored locally on this device.</p>
+                    <button onclick="window.signOut()" id="signOutBtn" class="hidden w-full bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 font-bold py-3 rounded-xl active:scale-95 transition-transform">Sign Out</button>
+                    <button onclick="showAuthScreen()" id="signInSettingsBtn" class="w-full bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 font-bold py-3 rounded-xl active:scale-95 transition-transform">Sign In / Create Account</button>
+                </div>
+
                 <div class="bg-white dark:bg-gray-900 p-4 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800">
                     <h3 class="font-bold text-gray-900 dark:text-white mb-2">Profile Name</h3>
                     <div class="flex gap-2">
@@ -252,8 +262,8 @@
                         <div class="bg-emerald-50 dark:bg-emerald-900/20 p-2 rounded-xl"><p class="text-xs text-emerald-500">Fat</p><p class="font-bold text-emerald-600 dark:text-emerald-400"><span id="setGoalF">0</span>g</p></div>
                     </div>
                 </div>
-                
-                <!-- NEW: Custom Gradient Goal Slider Section -->
+
+                <!-- Custom Gradient Goal Slider Section -->
                 <div class="bg-white dark:bg-gray-900 p-4 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800">
                     <h3 class="font-bold text-gray-900 dark:text-white mb-2">TDEE Auto-Calculator</h3>
                     <p class="text-xs text-gray-500 mb-4">Enter data from Apple Health to instantly calculate your goals.</p>
@@ -268,7 +278,7 @@
                                 <span class="text-xs font-bold px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded-lg" id="goalRateText">0.0 lbs/wk</span>
                             </div>
                             <div class="relative w-full h-6 flex items-center">
-                                <input type="range" id="calcGoalSlider" min="-750" max="750" step="1" value="0" oninput="updateGoalSlider(event)"
+                                <input type="range" id="calcGoalSlider" min="-750" max="750" step="1" value="0" oninput="updateGoalSlider(event)" onchange="updateGoalSlider(event)"
                                     class="w-full appearance-none h-2 rounded-full outline-none bg-gradient-to-r from-rose-500 via-gray-200 to-emerald-500 dark:via-gray-700 cursor-pointer goal-slider">
                             </div>
                             <div class="flex justify-between text-[10px] text-gray-400 font-bold px-1 mt-1">
@@ -306,7 +316,6 @@
                     </div>
                     <button id="saveManualBtn" class="w-full bg-black dark:bg-white text-white dark:text-black font-bold py-3 rounded-xl active:scale-95 transition-transform">Save Custom Split</button>
                 </div>
-                
                 <div class="bg-white dark:bg-gray-900 p-4 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800">
                     <h3 class="font-bold text-gray-900 dark:text-white mb-2">Data Backup</h3>
                     <p class="text-xs text-gray-500 mb-4">Export your local storage code to move your data to a new device.</p>
@@ -319,8 +328,8 @@
         </div>
     </main>
 
-    <!-- Bottom Navigation (Fixed to absolute bottom natively) -->
-    <nav class="fixed bottom-0 left-0 w-full bg-white/95 dark:bg-gray-900/95 backdrop-blur-lg border-t border-gray-200 dark:border-gray-800 z-50 transition-colors duration-300" style="padding-bottom: env(safe-area-inset-bottom);">
+    <!-- Bottom Navigation -->
+    <nav class="w-full bg-white/95 dark:bg-gray-900/95 backdrop-blur-lg border-t border-gray-200 dark:border-gray-800 z-50 transition-colors duration-300 flex-shrink-0" style="padding-bottom: env(safe-area-inset-bottom);">
         <div class="flex justify-around items-center h-16 px-2">
             <button class="nav-item active flex items-center justify-center w-16 h-12 text-gray-400 dark:text-gray-500 transition-colors" data-target="tab-log">
                 <i class="ph-fill ph-plus-circle text-2xl pointer-events-none"></i>
@@ -337,9 +346,99 @@
         </div>
     </nav>
 
-    <!-- App Script: Safe, Offline Local Storage + Sync -->
+    <!-- App Script -->
     <script>
-        const GEMINI_API_KEY = ""; 
+        // ==========================================
+        // 1. FIREBASE INITIALIZATION (PHASE 1)
+        // ==========================================
+        let FIREBASE_ENABLED = true; // Change this to true once you paste your config!
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCpvyKjuq8CuoxuCltBUqqwkGJ7ZiAVpaE",
+            authDomain: "macrotrack-48894.firebaseapp.com",
+            projectId: "macrotrack-48894",
+            storageBucket: "macrotrack-48894.firebasestorage.app",
+            messagingSenderId: "1031756690722",
+            appId: "1:1031756690722:web:dbcb493b384f196646a17b",
+            measurementId: "G-VDLTHQ4H8V"
+        };
+
+        let currentUser = null;
+
+        if (FIREBASE_ENABLED) {
+            firebase.initializeApp(firebaseConfig);
+            const auth = firebase.auth();
+            const db = firebase.firestore();
+
+            // Listen for login state changes
+            auth.onAuthStateChanged(user => {
+                const overlay = document.getElementById('authOverlay');
+                const statusText = document.getElementById('accountStatusText');
+                const signOutBtn = document.getElementById('signOutBtn');
+                const signInBtn = document.getElementById('signInSettingsBtn');
+
+                if (user) {
+                    // USER IS LOGGED IN
+                    currentUser = user;
+                    overlay.classList.add('hidden');
+                    overlay.classList.remove('flex');
+                    document.getElementById('userAvatar').innerText = user.displayName ? user.displayName.charAt(0).toUpperCase() : 'U';
+                    
+                    statusText.innerHTML = `Signed in as <b>${user.email}</b>`;
+                    statusText.className = "text-xs text-blue-500 mb-4";
+                    signOutBtn.classList.remove('hidden');
+                    signInBtn.classList.add('hidden');
+                    
+                } else {
+                    // NO USER LOGGED IN
+                    currentUser = null;
+                    document.getElementById('userAvatar').innerText = 'U';
+                    statusText.innerText = "Not signed in. Data is stored locally on this device.";
+                    statusText.className = "text-xs text-gray-500 dark:text-gray-400 mb-4";
+                    signOutBtn.classList.add('hidden');
+                    signInBtn.classList.remove('hidden');
+                    
+                    // Show welcome screen if app just opened
+                    if(!sessionStorage.getItem('guestMode')) {
+                        overlay.classList.remove('hidden');
+                        overlay.classList.add('flex');
+                    }
+                }
+            });
+        }
+
+        window.signInWithGoogle = () => {
+            if (!FIREBASE_ENABLED) return showToast("Please paste your Firebase keys and set FIREBASE_ENABLED to true in the code first!", "error");
+            const provider = new firebase.auth.GoogleAuthProvider();
+            firebase.auth().signInWithPopup(provider).then(() => {
+                sessionStorage.removeItem('guestMode');
+                showToast("Sign in successful!", "success");
+            }).catch(error => showToast(error.message, "error"));
+        };
+
+        window.signOut = () => {
+            if (FIREBASE_ENABLED && currentUser) {
+                firebase.auth().signOut().then(() => showToast("Signed out", "info"));
+            }
+        };
+
+        window.continueAsGuest = () => {
+            sessionStorage.setItem('guestMode', 'true');
+            const overlay = document.getElementById('authOverlay');
+            overlay.classList.add('hidden');
+            overlay.classList.remove('flex');
+            showToast("Playing in offline mode", "info");
+        };
+
+        window.showAuthScreen = () => {
+            if (!FIREBASE_ENABLED) return showToast("Please paste your Firebase keys and set FIREBASE_ENABLED to true in the code first!", "error");
+            document.getElementById('authOverlay').classList.remove('hidden');
+            document.getElementById('authOverlay').classList.add('flex');
+        };
+
+        // ==========================================
+        // 2. APP LOGIC & AI FETCH (UNTOUCHED)
+        // ==========================================
         const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbxYk2MQbAamBncjAf6QhQFgaIL-vjLMvp7EvKWDB5xjdAdXwKb2CNnF_Oe0fs8t4eDhpA/exec";
 
         let userGoals = JSON.parse(localStorage.getItem('mt_userGoals')) || { cals: 2000, p: 150, c: 200, f: 65, water: 8 };
@@ -370,7 +469,7 @@
                 
                 document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
                 document.getElementById(targetId).classList.add('active');
-                window.scrollTo(0, 0);
+                document.getElementById('mainContent').scrollTo(0, 0);
 
                 const titles = { 'tab-log': 'Log Food', 'tab-dash': 'Dashboard', 'tab-history': 'History', 'tab-settings': 'Settings' };
                 document.getElementById('headerTitle').innerText = titles[targetId];
@@ -384,29 +483,20 @@
         window.exportData = async () => {
             const backup = { goals: userGoals, foods: allFoods, water: todayWater };
             const code = JSON.stringify(backup);
-            
             try {
-                // Tier 1: Modern API
                 await navigator.clipboard.writeText(code);
                 showToast("Backup copied to clipboard!", "success");
             } catch (err) {
                 try {
-                    // Tier 2: Invisible Textbox Hack
                     const textArea = document.createElement("textarea");
                     textArea.value = code;
                     document.body.appendChild(textArea);
-                    textArea.focus();
-                    textArea.select();
+                    textArea.focus(); textArea.select();
                     const successful = document.execCommand('copy');
                     document.body.removeChild(textArea);
-                    
-                    if (successful) {
-                        showToast("Backup copied to clipboard!", "success");
-                    } else {
-                        throw new Error("ExecCommand failed");
-                    }
+                    if (successful) showToast("Backup copied to clipboard!", "success");
+                    else throw new Error("Fallback failed");
                 } catch (fallbackErr) {
-                    // Tier 3: Manual Prompt
                     prompt("Please manually copy your backup data below:", code);
                 }
             }
@@ -442,7 +532,7 @@
             
             if(userGoals.displayName) {
                 document.getElementById('setDisplayName').value = userGoals.displayName;
-                document.getElementById('userAvatar').innerText = userGoals.displayName.charAt(0).toUpperCase();
+                if(!currentUser) document.getElementById('userAvatar').innerText = userGoals.displayName.charAt(0).toUpperCase();
             }
         }
 
@@ -454,7 +544,6 @@
             showToast("Name saved! It will attach to new logs.", "success");
         };
 
-        // DOM Setup for Manual Sliders
         let sliderVal1 = 30; let sliderVal2 = 70; let draggingThumb = null;
         const track = document.getElementById('macroSliderTrack');
         const calInput = document.getElementById('manualCals');
@@ -474,7 +563,7 @@
                 }
             }
             updateSliderUI();
-            updateGoalSlider(); // Ensure the magnetic slider is initialized
+            updateGoalSlider(); 
         }
 
         function updateSliderUI() {
@@ -504,26 +593,24 @@
 
         calInput.addEventListener('input', updateSliderUI);
 
-        // NEW: Magnetic Rate of Loss/Gain Slider
-        function updateGoalSlider(e) {
+        // Magnetic Rate of Loss/Gain Slider
+        window.updateGoalSlider = function(e) {
             const slider = document.getElementById('calcGoalSlider');
             if (!slider) return;
             let val = parseInt(slider.value);
             
-            // Magnetic Snapping to increments of 250
-            const snapPoints = [-750, -500, -250, 0, 250, 500, 750];
-            for (let snap of snapPoints) {
-                // If user slides within 25 calories of a major breakpoint, magnetically snap to it
-                if (Math.abs(val - snap) <= 25) {
-                    val = snap;
-                    if (e && e.type === 'input') slider.value = val;
-                    break;
+            if (e && (e.type === 'change' || e.type === 'touchend' || e.type === 'mouseup')) {
+                const snapPoints = [-750, -500, -250, 0, 250, 500, 750];
+                for (let snap of snapPoints) {
+                    if (Math.abs(val - snap) <= 125) {
+                        val = snap;
+                        slider.value = val;
+                        break;
+                    }
                 }
             }
 
-            // Real-time calculation: 500 calorie daily deficit = roughly 1 lb a week
             const lbsPerWeek = Math.abs(val / 500).toFixed(1);
-            
             const modeText = document.getElementById('goalModeText');
             const rateText = document.getElementById('goalRateText');
             const warning = document.getElementById('goalWarning');
@@ -542,13 +629,12 @@
                 rateText.innerText = `0.0 lbs/wk`;
             }
 
-            // Safety limits logic (Warns outside of the safe -500 to +500 zone)
             if (val < -500 || val > 500) {
                 warning.classList.remove('hidden');
             } else {
                 warning.classList.add('hidden');
             }
-        }
+        };
 
         function startDrag(e, thumbNum) {
             e.preventDefault();
@@ -603,7 +689,6 @@
             showToast("Custom goals saved locally!", "success");
         };
 
-        // NEW: Reads from the new Slider instead of the old dropdown
         document.getElementById('recalcBtn').onclick = () => {
             const restingCals = parseFloat(document.getElementById('calcResting').value);
             const activeCals = parseFloat(document.getElementById('calcActive').value);
@@ -661,9 +746,7 @@
                     
                     const response = await fetch(GOOGLE_SHEETS_URL, {
                         method: "POST",
-                        headers: {
-                            "Content-Type": "text/plain;charset=utf-8"
-                        },
+                        headers: { "Content-Type": "text/plain;charset=utf-8" },
                         body: JSON.stringify({
                             action: "analyze",
                             prompt: prompt,
@@ -694,21 +777,17 @@
 
                     const newEntry = { id: uniqueId, ...data, dateLogged: isoDate, description: description || "" };
 
-                    // 3. Save to local storage for the dashboard
                     allFoods.push(newEntry);
                     localStorage.setItem('mt_allFoods', JSON.stringify(allFoods));
                     
                     updateDashboardUI();
                     renderHistory();
 
-                    // 4. Send the background save to Google Sheets
                     try {
                         fetch(GOOGLE_SHEETS_URL, {
                             method: "POST", 
                             mode: "no-cors",
-                            headers: {
-                                "Content-Type": "text/plain;charset=utf-8"
-                            },
+                            headers: { "Content-Type": "text/plain;charset=utf-8" },
                             body: JSON.stringify({ 
                                 action: "add", 
                                 id: uniqueId, 
@@ -728,7 +807,7 @@
                     document.getElementById('imagePreview').style.backgroundImage = "none";
                     document.getElementById('cameraIconContainer').classList.remove('hidden');
                     base64Image = null; imageMimeType = null;
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                    document.getElementById('mainContent').scrollTo({ top: 0, behavior: 'smooth' });
 
                 } catch (err) {
                     window.showToast("Error: " + err.message, "error");
@@ -901,7 +980,6 @@
             if (e.target.id === 'nutritionModal') window.closeModal();
         });
 
-        // Delete Food Logic
         window.deleteFood = (id, e) => {
             if(e) e.stopPropagation();
             
@@ -915,12 +993,12 @@
             try {
                 fetch(GOOGLE_SHEETS_URL, {
                     method: "POST", mode: "no-cors", 
+                    headers: { "Content-Type": "text/plain;charset=utf-8" },
                     body: JSON.stringify({ action: "delete", id: id })
                 });
-            } catch(err) { console.error("Sheet delete failed"); }
+            } catch(err) {}
         };
 
-        // Sleek Quantity Stepper Logic
         window.updateQty = (id, delta, e) => {
             e.stopPropagation();
             const food = allFoods.find(f => f.id === id);
@@ -937,7 +1015,7 @@
             }
             
             const newServings = food.servings + delta;
-            if (newServings < 1) return; // Can't go below 1 serving
+            if (newServings < 1) return; 
             
             food.servings = newServings;
             food.calories = food.baseCalories * newServings;
@@ -952,7 +1030,6 @@
             renderHistory();
         };
 
-        // Quick-Repeat (Duplicate a past food for today)
         window.repeatFood = (id, e) => {
             e.stopPropagation();
             const oldFood = allFoods.find(f => f.id === id);
@@ -978,6 +1055,7 @@
             try {
                 fetch(GOOGLE_SHEETS_URL, {
                     method: "POST", mode: "no-cors", 
+                    headers: { "Content-Type": "text/plain;charset=utf-8" },
                     body: JSON.stringify({ 
                         action: "add", id: uniqueId, 
                         foodName: newEntry.foodName, calories: newEntry.calories,
@@ -1002,7 +1080,7 @@
                             <i class="ph ph-camera-plus text-3xl"></i>
                         </div>
                         <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-1">Welcome to MacroTrack</h3>
-                        <p class="text-sm text-gray-500 dark:text-gray-400 mb-6 px-4">Snap a photo or type a name. We instantly estimate calories and macros for complex dishes, mixed bowls, and more.</p>
+                        <p class="text-sm text-gray-500 dark:text-gray-400 mb-6 px-4">Snap a photo or type a name. We automatically analyze complex dishes, mixed bowls, and hidden ingredients.</p>
                         
                         <div class="text-left opacity-60 pointer-events-none max-w-sm mx-auto">
                             <div class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Example Logs</div>
@@ -1054,10 +1132,7 @@
                 card.className = "mb-3 relative rounded-2xl overflow-hidden bg-red-500 shadow-sm border border-gray-100 dark:border-gray-800";
                 card.innerHTML = `
                     <div class="flex overflow-x-auto snap-x snap-mandatory hide-scrollbar">
-                        
-                        <!-- FRONT CARD (Snaps into view, stretches 100% width) -->
                         <div class="snap-start w-full shrink-0 bg-white dark:bg-gray-900 p-3 flex justify-between items-center relative z-10 transition-colors">
-                            
                             <div class="flex flex-col flex-1 min-w-0 pr-3 cursor-pointer" onclick="window.openModal('${food.id}')">
                                 <div class="flex items-center gap-2 mb-1">
                                     <h4 class="font-bold text-gray-900 dark:text-gray-100 leading-tight truncate">${food.foodName}</h4>
@@ -1068,22 +1143,18 @@
                                     <span>| P:${round1(food.protein)} C:${round1(food.carbs)} F:${round1(food.fat)}</span>
                                 </p>
                             </div>
-                            
                             <div class="flex items-center bg-gray-100 dark:bg-gray-800 rounded-full h-8 px-1 shrink-0">
                                 <button onclick="window.updateQty('${food.id}', -1, event)" class="w-6 h-6 flex items-center justify-center rounded-full text-gray-500 active:bg-gray-200 dark:active:bg-gray-700 transition-colors">-</button>
                                 <span class="text-xs font-bold w-5 text-center">${food.servings || 1}</span>
                                 <button onclick="window.updateQty('${food.id}', 1, event)" class="w-6 h-6 flex items-center justify-center rounded-full text-gray-500 active:bg-gray-200 dark:active:bg-gray-700 transition-colors">+</button>
                             </div>
                         </div>
-
-                        <!-- BACK CARD (Swipe left to reveal, snaps open) -->
                         <div class="snap-end w-24 shrink-0 flex items-center justify-center text-white cursor-pointer active:bg-red-600 transition-colors" onclick="window.deleteFood('${food.id}', event)">
                             <div class="flex flex-col items-center">
                                 <i class="ph ph-trash text-2xl mb-1"></i>
                                 <span class="text-[10px] font-bold">Delete</span>
                             </div>
                         </div>
-                        
                     </div>
                 `;
                 list.appendChild(card);
