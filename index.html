@@ -174,6 +174,76 @@
             </div>
         </div>
 
+        <!-- ==================== TAB 2: DASHBOARD ==================== -->
+        <div id="tab-dash" class="tab-content">
+            <div class="p-4 space-y-4">
+                <!-- Daily Summary / Macro Chart -->
+                <div class="bg-white dark:bg-gray-900 p-4 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800 flex items-center gap-4">
+                    <div class="w-24 h-24 relative shrink-0">
+                        <canvas id="macroChart"></canvas>
+                    </div>
+                    <div class="flex-1 grid grid-cols-3 gap-2 text-center">
+                        <div><p class="text-[10px] text-gray-500 uppercase font-bold">Pro</p><p class="font-black text-rose-500"><span id="dashP">0</span>g</p></div>
+                        <div><p class="text-[10px] text-gray-500 uppercase font-bold">Carb</p><p class="font-black text-amber-500"><span id="dashC">0</span>g</p></div>
+                        <div><p class="text-[10px] text-gray-500 uppercase font-bold">Fat</p><p class="font-black text-emerald-500"><span id="dashF">0</span>g</p></div>
+                    </div>
+                </div>
+
+                <!-- Fiber Tracker -->
+                <div class="bg-white dark:bg-gray-900 p-4 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800 flex justify-between items-center">
+                    <div>
+                        <h3 class="font-bold text-gray-900 dark:text-white">Fiber Intake</h3>
+                        <p class="text-xs text-gray-500">Goal: <span id="fiberGoal">0</span>g</p>
+                    </div>
+                    <div class="relative w-12 h-12">
+                        <svg class="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+                            <path class="text-gray-100 dark:text-gray-800" stroke-width="4" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                            <path id="fiberCircle" class="text-blue-500 transition-all duration-1000" stroke-dasharray="0, 100" stroke-width="4" stroke-linecap="round" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                        </svg>
+                        <div class="absolute inset-0 flex items-center justify-center font-bold text-xs"><span id="fiberEaten">0</span></div>
+                    </div>
+                </div>
+
+                <!-- Water Tracker -->
+                <div class="bg-white dark:bg-gray-900 p-4 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800">
+                    <div class="flex justify-between items-center mb-3">
+                        <div>
+                            <h3 class="font-bold text-gray-900 dark:text-white">Water</h3>
+                            <p class="text-xs text-gray-500">Daily Hydration</p>
+                        </div>
+                        <div class="text-2xl font-black text-blue-500"><span id="waterCount">0</span> <span class="text-sm font-medium text-gray-400">glasses</span></div>
+                    </div>
+                    <div class="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-3 mb-4 overflow-hidden">
+                        <div id="waterBar" class="bg-blue-400 h-full rounded-full transition-all duration-500 w-0"></div>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="addWater(-1)" class="flex-1 py-2 bg-gray-50 dark:bg-gray-800 rounded-xl font-bold active:scale-95 transition-transform">-</button>
+                        <button onclick="addWater(1)" class="flex-[3] py-2 bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 rounded-xl font-bold active:scale-95 transition-transform">+ Add Glass</button>
+                    </div>
+                </div>
+
+                <!-- Weekly Chart & Streak -->
+                <div class="bg-white dark:bg-gray-900 p-4 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-bold text-gray-900 dark:text-white">This Week</h3>
+                        <div class="flex items-center gap-1 text-xs font-bold text-orange-500 bg-orange-50 dark:bg-orange-900/20 px-2 py-1 rounded-lg">
+                            <i class="ph-fill ph-fire"></i> <span id="streakCountText">0</span> Day Streak
+                        </div>
+                    </div>
+                    <div class="h-40 w-full">
+                        <canvas id="weeklyChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== TAB 3: HISTORY ==================== -->
+        <div id="tab-history" class="tab-content">
+            <div class="p-4" id="historyList">
+                <!-- History items injected here by JS -->
+            </div>
+        </div>
+
         <!-- ==================== TAB 4: SETTINGS ==================== -->
         <div id="tab-settings" class="tab-content">
             <div class="p-4 space-y-6 pb-8">
@@ -351,11 +421,15 @@
 
         window.signInWithGoogle = () => {
             if (!FIREBASE_ENABLED) return showToast("Please paste your Firebase keys and set FIREBASE_ENABLED to true in the code first!", "error");
+            
+            // Set session storage BEFORE redirecting so the app knows we aren't a guest when it reloads
+            sessionStorage.removeItem('guestMode'); 
+            
             const provider = new firebase.auth.GoogleAuthProvider();
-            firebase.auth().signInWithPopup(provider).then(() => {
-                sessionStorage.removeItem('guestMode');
-                showToast("Sign in successful!", "success");
-            }).catch(error => showToast(error.message, "error"));
+            // Using REDIRECT instead of POPUP. This is mandatory for iOS Home Screen PWAs!
+            firebase.auth().signInWithRedirect(provider).catch(error => {
+                showToast(error.message, "error");
+            });
         };
 
         window.signOut = () => {
