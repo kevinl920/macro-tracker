@@ -21,11 +21,8 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
     
     <style>
-        /* Modern viewport height ensures it snaps to the exact glass inside Safari */
+        /* Native Document Scrolling - fixes the bottom bar bug permanently! */
         html, body {
-            height: 100dvh;
-            height: -webkit-fill-available;
-            overflow: hidden; 
             -webkit-tap-highlight-color: transparent;
         }
 
@@ -128,18 +125,18 @@
     </div>
     
     <!-- Header -->
-    <header class="w-full bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg border-b border-gray-200 dark:border-gray-800 px-6 pb-3 z-50 flex justify-between items-center transition-colors duration-300 flex-shrink-0" style="padding-top: max(env(safe-area-inset-top), 1rem);">
+    <header class="fixed top-0 w-full bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg border-b border-gray-200 dark:border-gray-800 px-6 pb-3 z-50 flex justify-between items-center transition-colors duration-300" style="padding-top: max(env(safe-area-inset-top), 1rem);">
         <h1 class="text-xl font-bold text-gray-900 dark:text-white tracking-tight" id="headerTitle">Log Food</h1>
         <div class="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-blue-600 dark:text-blue-300 font-bold text-xs uppercase cursor-pointer" id="userAvatar" onclick="document.querySelector('[data-target=\'tab-settings\']').click()">U</div>
     </header>
 
     <!-- Main Content Area -->
-    <main class="w-full flex-1 overflow-y-auto relative z-0" id="mainContent">
+    <main class="w-full pt-20 pb-24 relative z-0" id="mainContent">
         
         <!-- ==================== TAB 1: LOG FOOD ==================== -->
         <div id="tab-log" class="tab-content active">
             <!-- Calorie Card fixed nicely underneath the top header -->
-            <div class="sticky top-0 z-40 p-4 bg-gray-50/90 dark:bg-gray-950/90 backdrop-blur pb-2 transition-colors duration-300">
+            <div class="sticky z-40 p-4 bg-gray-50/90 dark:bg-gray-950/90 backdrop-blur pb-2 transition-colors duration-300" style="top: calc(max(env(safe-area-inset-top), 1rem) + 40px);">
                 <div class="bg-white dark:bg-gray-900 p-4 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800 transition-colors duration-300">
                     <div class="flex justify-between items-end mb-2">
                         <div>
@@ -176,62 +173,6 @@
                     <i class="ph ph-sparkle text-xl"></i> Analyze & Log
                 </button>
             </div>
-        </div>
-
-        <!-- ==================== TAB 2: DASHBOARD ==================== -->
-        <div id="tab-dash" class="tab-content">
-            <div class="p-4 space-y-4">
-                <div class="bg-white dark:bg-gray-900 p-4 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800">
-                    <h3 class="font-bold text-gray-900 dark:text-white mb-4">Macro Distribution</h3>
-                    <div class="relative w-full aspect-square max-h-48 mx-auto">
-                        <canvas id="macroChart"></canvas>
-                    </div>
-                    <div class="flex justify-around mt-4">
-                        <div class="text-center"><p class="text-xs text-gray-500">Protein</p><p class="font-bold text-rose-500"><span id="dashP">0</span>g</p></div>
-                        <div class="text-center"><p class="text-xs text-gray-500">Carbs</p><p class="font-bold text-amber-500"><span id="dashC">0</span>g</p></div>
-                        <div class="text-center"><p class="text-xs text-gray-500">Fat</p><p class="font-bold text-emerald-500"><span id="dashF">0</span>g</p></div>
-                    </div>
-                </div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="bg-white dark:bg-gray-900 p-4 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800 text-center flex flex-col items-center justify-center">
-                        <h3 class="text-xs font-bold text-gray-500 uppercase mb-2">Fiber</h3>
-                        <svg class="w-16 h-16 transform -rotate-90" viewBox="0 0 36 36">
-                            <path class="text-gray-100 dark:text-gray-800" stroke-width="3" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                            <path id="fiberCircle" class="text-purple-500 transition-all duration-1000 ease-out" stroke-dasharray="0, 100" stroke-width="3" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                        </svg>
-                        <p class="font-bold mt-2"><span id="fiberEaten">0</span> / <span id="fiberGoal">0</span>g</p>
-                    </div>
-                    <div class="bg-white dark:bg-gray-900 p-4 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800 text-center flex flex-col items-center justify-center">
-                        <h3 class="text-xs font-bold text-gray-500 uppercase mb-2">Streak</h3>
-                        <div class="text-4xl mb-1">🔥</div>
-                        <p class="font-black text-xl"><span id="streakCountText">0</span> Days</p>
-                    </div>
-                </div>
-                <div class="bg-white dark:bg-gray-900 p-4 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800">
-                    <div class="flex justify-between items-end mb-2">
-                        <h3 class="font-bold text-gray-900 dark:text-white">Water Tracker</h3>
-                        <p class="text-sm font-bold text-blue-500"><span id="waterCount">0</span> / <span id="waterGoalText">8</span> cups</p>
-                    </div>
-                    <div class="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-4 mb-4 overflow-hidden border border-gray-200 dark:border-gray-700">
-                        <div id="waterBar" class="bg-blue-400 h-4 rounded-full transition-all duration-500" style="width: 0%"></div>
-                    </div>
-                    <div class="flex justify-center gap-4">
-                        <button onclick="addWater(1)" class="w-12 h-12 bg-blue-50 dark:bg-blue-900/30 text-blue-500 rounded-2xl flex items-center justify-center text-xl active:scale-90 transition-transform"><i class="ph-fill ph-drop"></i></button>
-                        <button onclick="addWater(-1)" class="w-12 h-12 bg-gray-50 dark:bg-gray-800 text-gray-400 rounded-2xl flex items-center justify-center text-xl active:scale-90 transition-transform"><i class="ph ph-minus"></i></button>
-                    </div>
-                </div>
-                <div class="bg-white dark:bg-gray-900 p-4 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800">
-                    <h3 class="font-bold text-gray-900 dark:text-white mb-4">7-Day Trend</h3>
-                    <div class="relative w-full h-40">
-                        <canvas id="weeklyChart"></canvas>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- ==================== TAB 3: HISTORY ==================== -->
-        <div id="tab-history" class="tab-content">
-            <div id="historyList" class="p-4 space-y-3 pb-8"></div>
         </div>
 
         <!-- ==================== TAB 4: SETTINGS ==================== -->
@@ -329,7 +270,7 @@
     </main>
 
     <!-- Bottom Navigation -->
-    <nav class="w-full bg-white/95 dark:bg-gray-900/95 backdrop-blur-lg border-t border-gray-200 dark:border-gray-800 z-50 transition-colors duration-300 flex-shrink-0" style="padding-bottom: env(safe-area-inset-bottom);">
+    <nav class="fixed bottom-0 w-full bg-white/95 dark:bg-gray-900/95 backdrop-blur-lg border-t border-gray-200 dark:border-gray-800 z-50 transition-colors duration-300" style="padding-bottom: env(safe-area-inset-bottom);">
         <div class="flex justify-around items-center h-16 px-2">
             <button class="nav-item active flex items-center justify-center w-16 h-12 text-gray-400 dark:text-gray-500 transition-colors" data-target="tab-log">
                 <i class="ph-fill ph-plus-circle text-2xl pointer-events-none"></i>
@@ -354,13 +295,13 @@
         let FIREBASE_ENABLED = true; // Change this to true once you paste your config!
 
         const firebaseConfig = {
-            apiKey: "AIzaSyCpvyKjuq8CuoxuCltBUqqwkGJ7ZiAVpaE",
-            authDomain: "macrotrack-48894.firebaseapp.com",
-            projectId: "macrotrack-48894",
-            storageBucket: "macrotrack-48894.firebasestorage.app",
-            messagingSenderId: "1031756690722",
-            appId: "1:1031756690722:web:dbcb493b384f196646a17b",
-            measurementId: "G-VDLTHQ4H8V"
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_PROJECT_ID.firebasestorage.app",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID",
+            measurementId: "YOUR_MEASUREMENT_ID"
         };
 
         let currentUser = null;
@@ -469,7 +410,7 @@
                 
                 document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
                 document.getElementById(targetId).classList.add('active');
-                document.getElementById('mainContent').scrollTo(0, 0);
+                window.scrollTo(0, 0);
 
                 const titles = { 'tab-log': 'Log Food', 'tab-dash': 'Dashboard', 'tab-history': 'History', 'tab-settings': 'Settings' };
                 document.getElementById('headerTitle').innerText = titles[targetId];
@@ -807,7 +748,7 @@
                     document.getElementById('imagePreview').style.backgroundImage = "none";
                     document.getElementById('cameraIconContainer').classList.remove('hidden');
                     base64Image = null; imageMimeType = null;
-                    document.getElementById('mainContent').scrollTo({ top: 0, behavior: 'smooth' });
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
 
                 } catch (err) {
                     window.showToast("Error: " + err.message, "error");
