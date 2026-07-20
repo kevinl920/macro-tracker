@@ -67,15 +67,23 @@
     <div id="authOverlay" class="fixed inset-0 bg-white dark:bg-gray-950 z-[300] hidden flex-col items-center justify-center p-6 transition-opacity duration-300">
         <i class="ph-fill ph-chart-pie-slice text-6xl text-blue-500 mb-4 animate-bounce"></i>
         <h1 class="text-3xl font-black text-gray-900 dark:text-white mb-2 tracking-tight">MacroTrack</h1>
-        <p class="text-center text-gray-500 dark:text-gray-400 mb-8 max-w-xs text-sm">Sign in to save your logs to the cloud and connect with friends.</p>
         
-        <button onclick="signInWithGoogle()" class="w-full max-w-xs bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white font-bold py-4 rounded-2xl mb-4 flex items-center justify-center gap-2 active:scale-95 transition-transform">
-            <i class="ph-fill ph-google-logo text-xl"></i> Continue with Google
-        </button>
-        
-        <button onclick="continueAsGuest()" class="text-sm font-bold text-gray-400 dark:text-gray-500 p-2 active:scale-95 transition-transform">
-            Continue Offline (Local Storage)
-        </button>
+        <!-- Startup Loading State -->
+        <div id="authLoadingState" class="flex flex-col items-center mt-4">
+            <i class="ph ph-spinner animate-spin text-3xl text-blue-500 mb-2"></i>
+            <p class="text-gray-500 dark:text-gray-400 text-sm font-medium">Checking connection...</p>
+        </div>
+
+        <!-- Action Buttons -->
+        <div id="authActionButtons" class="hidden flex-col items-center w-full mt-2">
+            <p class="text-center text-gray-500 dark:text-gray-400 mb-8 max-w-xs text-sm">Sign in to save your logs to the cloud and connect with friends.</p>
+            <button onclick="signInWithGoogle()" id="googleLoginBtn" class="w-full max-w-xs bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white font-bold py-4 rounded-2xl mb-4 flex items-center justify-center gap-2 active:scale-95 transition-transform">
+                <i class="ph-fill ph-google-logo text-xl"></i> Continue with Google
+            </button>
+            <button onclick="continueAsGuest()" class="text-sm font-bold text-gray-400 dark:text-gray-500 p-2 active:scale-95 transition-transform">
+                Continue Offline (Local Storage)
+            </button>
+        </div>
     </div>
 
     <!-- NEW Phase 2: Username Selection Modal -->
@@ -467,13 +475,37 @@
             window.auth = firebase.auth();
             window.db = firebase.firestore();
 
-            // Catch the return trip from Google Sign-In redirect explicitly before anything else
-            window.auth.getRedirectResult().catch(error => {
-                console.error("Redirect Error:", error);
-                window.showToast("Login interrupted. Please try again.", "error");
-                const btn = document.querySelector('button[onclick="signInWithGoogle()"]');
-                if (btn) btn.innerHTML = '<i class="ph-fill ph-google-logo text-xl"></i> Continue with Google';
-            });
+            let authCheckComplete = false;
+
+            const showLoginButtons = () => {
+                if(!sessionStorage.getItem('guestMode')) {
+                    document.getElementById('authOverlay').classList.remove('hidden');
+                    document.getElementById('authOverlay').classList.add('flex');
+                    document.getElementById('authLoadingState').classList.add('hidden');
+                    document.getElementById('authActionButtons').classList.remove('hidden');
+                    document.getElementById('authActionButtons').classList.add('flex');
+                }
+            };
+
+            // Force Local Persistence and await redirect check securely
+            window.auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
+                .then(() => window.auth.getRedirectResult())
+                .then((result) => {
+                    authCheckComplete = true;
+                    if (result && result.user) {
+                        console.log("Redirect success!");
+                    } else if (!currentUser) {
+                        showLoginButtons();
+                    }
+                })
+                .catch(error => {
+                    authCheckComplete = true;
+                    console.error("Redirect Error:", error);
+                    window.showToast("Login error: " + error.message, "error");
+                    showLoginButtons();
+                    const btn = document.getElementById('googleLoginBtn');
+                    if (btn) btn.innerHTML = '<i class="ph-fill ph-google-logo text-xl"></i> Continue with Google';
+                });
 
             window.auth.onAuthStateChanged(async user => {
                 const overlay = document.getElementById('authOverlay');
@@ -522,9 +554,15 @@
                     signOutBtn.classList.add('hidden');
                     signInBtn.classList.remove('hidden');
                     
-                    if(!sessionStorage.getItem('guestMode')) {
+                    if(authCheckComplete) {
+                        showLoginButtons();
+                    } else if(!sessionStorage.getItem('guestMode')) {
+                        // Keep loading screen visible if we don't know yet
                         overlay.classList.remove('hidden');
                         overlay.classList.add('flex');
+                        document.getElementById('authLoadingState').classList.remove('hidden');
+                        document.getElementById('authActionButtons').classList.add('hidden');
+                        document.getElementById('authActionButtons').classList.remove('flex');
                     }
                 }
             });
@@ -567,14 +605,12 @@
             if (!FIREBASE_ENABLED) return;
             sessionStorage.removeItem('guestMode'); 
             
-            // Set button to loading state immediately to prevent multi-clicks
-            const btn = document.querySelector('button[onclick="signInWithGoogle()"]');
+            const btn = document.getElementById('googleLoginBtn');
             if (btn) btn.innerHTML = '<i class="ph ph-spinner animate-spin text-xl"></i> Connecting...';
             
             const provider = new firebase.auth.GoogleAuthProvider();
-            window.auth.signInWithRedirect(provider).catch(error => {
-                window.showToast(error.message, "error");
-                if (btn) btn.innerHTML = '<i class="ph-fill ph-google-logo text-xl"></i> Continue with Google';
+            window.auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).then(() => {
+                window.auth.signInWithRedirect(provider);
             });
         };
 
