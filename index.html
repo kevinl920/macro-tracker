@@ -308,10 +308,27 @@
         </div>
     </div>
     
-    <!-- Header -->
     <header class="fixed top-0 w-full bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg border-b border-gray-200 dark:border-gray-800 px-6 pb-3 z-50 flex justify-between items-center transition-colors duration-300" style="padding-top: max(env(safe-area-inset-top), 1rem);">
         <h1 class="text-xl font-bold text-gray-900 dark:text-white tracking-tight" id="headerTitle">Log Food</h1>
-        <div class="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-blue-600 dark:text-blue-300 font-bold text-xs uppercase cursor-pointer" id="userAvatar" onclick="document.querySelector('[data-target=\'tab-settings\']').click()">U</div>
+        
+        <div class="flex items-center gap-3">
+            <!-- Mini Sage Chat Button -->
+            <button onclick="openSageChat()" class="w-8 h-8 rounded-full bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800 flex items-center justify-center active:scale-95 transition-transform shadow-sm" aria-label="Ask Sage">
+                <div class="relative w-5 h-4 translate-x-[1px] translate-y-[1px]">
+                    <!-- Mini Back Flipper -->
+                    <div class="absolute bottom-[1px] left-[1px] w-[3px] h-[4px] bg-[#8fa857] border-[1px] border-[#6b8243] rounded-[2px_2px_50%_50%] rotate-[15deg] z-10"></div>
+                    <!-- Mini Shell -->
+                    <div class="absolute top-0 left-0 w-4 h-3 bg-[#8c423f] border-[1px] border-[#5a2624] rounded-[10px_10px_2px_4px] z-20"></div>
+                    <!-- Mini Head -->
+                    <div class="absolute top-[4px] -right-[1px] w-[7px] h-[5px] bg-[#a3c065] border-[1px] border-[#7a9350] rounded-full z-10"></div>
+                    <!-- Mini Front Flipper -->
+                    <div class="absolute bottom-0 right-[4px] w-[3px] h-[5px] bg-[#a3c065] border-[1px] border-[#7a9350] rounded-[2px_2px_50%_50%] -rotate-[20deg] z-30"></div>
+                </div>
+            </button>
+            
+            <!-- User Avatar -->
+            <div class="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-blue-600 dark:text-blue-300 font-bold text-xs uppercase cursor-pointer" id="userAvatar" onclick="document.querySelector('[data-target=\'tab-settings\']').click()">U</div>
+        </div>
     </header>
 
     <!-- Main Content Area -->
