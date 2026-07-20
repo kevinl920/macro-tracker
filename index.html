@@ -21,7 +21,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
     
     <style>
-        /* Native Document Scrolling - fixes the bottom bar bug permanently! */
+        /* Native Document Scrolling */
         html, body {
             -webkit-tap-highlight-color: transparent;
         }
@@ -39,11 +39,11 @@
 
         #nutritionModal.show { opacity: 1; }
         #nutritionModal.show #nutritionCard { transform: scale(1); }
-
-        /* STREAMING_CHUNK: Friend Modal Animations */
+        
+        /* Friend Modal Animations */
         #friendFoodsModal.show { opacity: 1; }
         #friendFoodsModal.show #friendFoodsCard { transform: scale(1); }
-        
+
         /* Custom Goal Slider Thumb */
         .goal-slider::-webkit-slider-thumb {
             -webkit-appearance: none; appearance: none; width: 24px; height: 24px;
@@ -143,8 +143,8 @@
             <p class="text-[9px] text-gray-500 dark:text-gray-400 leading-tight mt-2">* The % Daily Goal tells you how much a nutrient in this serving contributes to your personal daily macro targets.</p>
         </div>
     </div>
-
-        <!-- STREAMING_CHUNK: Friend's Daily Foods Modal -->
+    
+    <!-- Friend's Daily Foods Modal -->
     <div id="friendFoodsModal" class="fixed inset-0 bg-black/70 z-[250] hidden flex-col items-center justify-center p-4 backdrop-blur-sm opacity-0 transition-opacity duration-200">
         <div class="bg-white dark:bg-gray-900 text-black dark:text-white p-5 w-full max-w-sm rounded-3xl shadow-2xl relative border border-gray-200 dark:border-gray-800 font-sans scale-95 transition-transform duration-200 flex flex-col max-h-[80vh]" id="friendFoodsCard">
             <button onclick="closeFriendModal()" class="absolute -top-4 -right-4 w-10 h-10 bg-gray-200 dark:bg-gray-800 border-2 border-white dark:border-gray-900 rounded-full flex items-center justify-center text-gray-800 dark:text-gray-200 shadow-lg active:scale-90 transition-transform"><i class="ph ph-x font-bold text-lg"></i></button>
@@ -277,7 +277,6 @@
             </div>
         </div>
 
-        <!-- STREAMING_CHUNK: TAB 3.5 SOCIAL FEED -->
         <!-- ==================== TAB 3.5: SOCIAL ==================== -->
         <div id="tab-social" class="tab-content">
             <div class="p-4 space-y-6">
@@ -319,12 +318,12 @@
                 
             </div>
         </div>
-    
+
         <!-- ==================== TAB 4: SETTINGS ==================== -->
         <div id="tab-settings" class="tab-content">
             <div class="p-4 space-y-6 pb-8">
                 
-                <!-- NEW Phase 1: Firebase Auth Card -->
+                <!-- Phase 1: Firebase Auth Card -->
                 <div class="bg-white dark:bg-gray-900 p-4 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800">
                     <h3 class="font-bold text-gray-900 dark:text-white mb-2">Cloud Account</h3>
                     <p class="text-xs text-gray-500 dark:text-gray-400 mb-4" id="accountStatusText">Not signed in. Data is stored locally on this device.</p>
@@ -427,7 +426,6 @@
             <button class="nav-item flex items-center justify-center w-16 h-12 text-gray-400 dark:text-gray-500 transition-colors" data-target="tab-history">
                 <i class="ph-fill ph-clock-counter-clockwise text-2xl pointer-events-none"></i>
             </button>
-            <!-- STREAMING_CHUNK: Injecting Social Icon into Bottom Nav -->
             <button class="nav-item flex items-center justify-center w-16 h-12 text-gray-400 dark:text-gray-500 transition-colors" data-target="tab-social">
                 <i class="ph-fill ph-users text-2xl pointer-events-none"></i>
             </button>
@@ -435,7 +433,7 @@
                 <i class="ph-fill ph-gear text-2xl pointer-events-none"></i>
             </button>
         </div>
-        <!-- Safari iOS Gap Filler: Acts as a curtain hanging below the nav to perfectly cover any floating gap -->
+        <!-- Safari iOS Gap Filler -->
         <div class="absolute top-full left-0 w-full h-[50vh] bg-white/95 dark:bg-gray-900/95 backdrop-blur-lg z-0"></div>
     </nav>
 
@@ -449,12 +447,8 @@
             }
         });
 
-        // ==========================================
-        // 1. FIREBASE INITIALIZATION & SYNC LOGIC
-        // ==========================================
         let FIREBASE_ENABLED = true; 
 
-        // PASTE YOUR ACTUAL KEYS HERE if your editor wiped them out!
         const firebaseConfig = {
             apiKey: "AIzaSyCpvyKjuq8CuoxuCltBUqqwkGJ7ZiAVpaE",
             authDomain: "macrotrack-48894.firebaseapp.com",
@@ -470,12 +464,9 @@
 
         if (FIREBASE_ENABLED) {
             firebase.initializeApp(firebaseConfig);
-            
-            // Make auth and db accessible everywhere in our script
             window.auth = firebase.auth();
             window.db = firebase.firestore();
 
-            // Listen for login state changes
             window.auth.onAuthStateChanged(async user => {
                 const overlay = document.getElementById('authOverlay');
                 const usernameModal = document.getElementById('usernameModal');
@@ -484,7 +475,6 @@
                 const signInBtn = document.getElementById('signInSettingsBtn');
 
                 if (user) {
-                    // USER IS LOGGED IN
                     currentUser = user;
                     overlay.classList.add('hidden');
                     overlay.classList.remove('flex');
@@ -497,15 +487,12 @@
                             usernameModal.classList.remove('hidden');
                             usernameModal.classList.add('flex');
                         } else {
-                            // Returning user! Sync their data to UI.
                             const username = doc.data().username;
                             userGoals.displayName = username;
                             document.getElementById('userAvatar').innerText = username.charAt(0).toUpperCase();
                             document.getElementById('setDisplayName').value = username;
                             
-                            // NEW Phase 2: Sync Foods from Cloud!
                             await window.syncCloudFoods(user.uid);
-                            // NEW Phase 3: Push local goals to cloud for friends to see
                             window.syncProfileToCloud();
                         }
                     } catch(e) {
@@ -518,7 +505,6 @@
                     signInBtn.classList.add('hidden');
                     
                 } else {
-                    // NO USER LOGGED IN
                     currentUser = null;
                     document.getElementById('userAvatar').innerText = 'U';
                     document.getElementById('usernameModal').classList.add('hidden');
@@ -536,26 +522,21 @@
             });
         }
 
-        // NEW PHASE 2: Cloud Sync Function
         window.syncCloudFoods = async (uid) => {
             try {
                 const foodsRef = window.db.collection('artifacts').doc(appId).collection('users').doc(uid).collection('foods');
                 const snapshot = await foodsRef.get();
                 
                 if (snapshot.empty && allFoods.length > 0) {
-                    // MIGRATION: Cloud is empty, but phone has foods. Back them up!
                     window.showToast("Backing up local foods to cloud...", "info");
                     const batch = window.db.batch();
-                    
                     allFoods.forEach(food => {
                         const docRef = foodsRef.doc(food.id);
                         batch.set(docRef, food);
                     });
-                    
                     await batch.commit();
                     window.showToast("Cloud backup complete!", "success");
                 } else if (!snapshot.empty) {
-                    // LOAD: Cloud has foods. Overwrite local to stay in sync.
                     allFoods = snapshot.docs.map(doc => doc.data());
                     localStorage.setItem('mt_allFoods', JSON.stringify(allFoods));
                     updateDashboardUI();
@@ -563,11 +544,9 @@
                 }
             } catch (err) {
                 console.error("Error syncing foods:", err);
-                window.showToast("Failed to sync with cloud", "error");
             }
         };
 
-        w// STREAMING_CHUNK: Phase 3 Cloud Profile Sync
         window.syncProfileToCloud = async () => {
             if (!FIREBASE_ENABLED || !currentUser) return;
             try {
@@ -577,12 +556,10 @@
         };
 
         window.signInWithGoogle = () => {
-            if (!FIREBASE_ENABLED) return showToast("Please paste your Firebase keys and set FIREBASE_ENABLED to true in the code first!", "error");
+            if (!FIREBASE_ENABLED) return;
             sessionStorage.removeItem('guestMode'); 
             const provider = new firebase.auth.GoogleAuthProvider();
-            window.auth.signInWithRedirect(provider).catch(error => {
-                showToast(error.message, "error");
-            });
+            window.auth.signInWithRedirect(provider).catch(error => showToast(error.message, "error"));
         };
 
         window.signOut = () => {
@@ -600,7 +577,6 @@
         };
 
         window.showAuthScreen = () => {
-            if (!FIREBASE_ENABLED) return showToast("Please paste your Firebase keys and set FIREBASE_ENABLED to true in the code first!", "error");
             document.getElementById('authOverlay').classList.remove('hidden');
             document.getElementById('authOverlay').classList.add('flex');
         };
@@ -646,22 +622,16 @@
                     document.getElementById('usernameModal').classList.add('hidden');
                     document.getElementById('usernameModal').classList.remove('flex');
                     window.showToast(`Welcome to the cloud, @${username}!`, "success");
-                    
-                    // NEW Phase 2: Sync their past foods if they just made an account!
                     window.syncCloudFoods(currentUser.uid);
                 }, 1000);
 
             } catch (err) {
                 status.innerText = "Error saving username. Try again.";
-                console.error(err);
                 btn.disabled = false;
                 btn.innerHTML = 'Claim Username <i class="ph-bold ph-arrow-right text-xl"></i>';
             }
         };
 
-        // ==========================================
-        // 2. APP LOGIC & AI FETCH
-        // ==========================================
         const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbxYk2MQbAamBncjAf6QhQFgaIL-vjLMvp7EvKWDB5xjdAdXwKb2CNnF_Oe0fs8t4eDhpA/exec";
 
         let userGoals = JSON.parse(localStorage.getItem('mt_userGoals')) || { cals: 2000, p: 150, c: 200, f: 65, water: 8 };
@@ -710,18 +680,7 @@
                 await navigator.clipboard.writeText(code);
                 showToast("Backup copied to clipboard!", "success");
             } catch (err) {
-                try {
-                    const textArea = document.createElement("textarea");
-                    textArea.value = code;
-                    document.body.appendChild(textArea);
-                    textArea.focus(); textArea.select();
-                    const successful = document.execCommand('copy');
-                    document.body.removeChild(textArea);
-                    if (successful) showToast("Backup copied to clipboard!", "success");
-                    else throw new Error("Fallback failed");
-                } catch (fallbackErr) {
-                    prompt("Please manually copy your backup data below:", code);
-                }
+                prompt("Please manually copy your backup data below:", code);
             }
         };
 
@@ -757,14 +716,9 @@
                 await batch.commit();
                 window.showToast("Sync complete! Check Firebase.", "success");
             } catch (err) {
-                console.error("Sync Error:", err);
                 window.showToast("Sync Failed: " + err.message, "error");
             }
         };
-
-        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-            if(document.getElementById('tab-dash').classList.contains('active')) updateDashboardUI();
-        });
 
         function updateGoalsUI() {
             document.getElementById('setGoalCals').innerText = userGoals.cals;
@@ -772,11 +726,6 @@
             document.getElementById('setGoalC').innerText = userGoals.c;
             document.getElementById('setGoalF').innerText = userGoals.f;
             document.getElementById('floatGoalCals').innerText = userGoals.cals;
-            
-            const waterGoalElement = document.getElementById('waterGoalText');
-            if (waterGoalElement) {
-                waterGoalElement.innerText = userGoals.water || 8;
-            }
             
             if(userGoals.displayName) {
                 document.getElementById('setDisplayName').value = userGoals.displayName;
@@ -789,8 +738,8 @@
             userGoals.displayName = name;
             localStorage.setItem('mt_userGoals', JSON.stringify(userGoals));
             updateGoalsUI();
-            window.syncProfileToCloud(); // Phase 3 trigger
-            showToast("Name saved! It will attach to new logs.", "success");
+            window.syncProfileToCloud(); 
+            showToast("Name saved!", "success");
         };
 
         let sliderVal1 = 30; let sliderVal2 = 70; let draggingThumb = null;
@@ -850,11 +799,7 @@
             if (e && (e.type === 'change' || e.type === 'touchend' || e.type === 'mouseup')) {
                 const snapPoints = [-750, -500, -250, 0, 250, 500, 750];
                 for (let snap of snapPoints) {
-                    if (Math.abs(val - snap) <= 125) {
-                        val = snap;
-                        slider.value = val;
-                        break;
-                    }
+                    if (Math.abs(val - snap) <= 125) { val = snap; slider.value = val; break; }
                 }
             }
 
@@ -864,24 +809,18 @@
             const warning = document.getElementById('goalWarning');
 
             if (val < 0) {
-                modeText.innerText = "Lose Weight";
-                modeText.className = "text-sm font-bold text-rose-500";
+                modeText.innerText = "Lose Weight"; modeText.className = "text-sm font-bold text-rose-500";
                 rateText.innerText = `-${lbsPerWeek} lbs/wk`;
             } else if (val > 0) {
-                modeText.innerText = "Gain Weight";
-                modeText.className = "text-sm font-bold text-emerald-500";
+                modeText.innerText = "Gain Weight"; modeText.className = "text-sm font-bold text-emerald-500";
                 rateText.innerText = `+${lbsPerWeek} lbs/wk`;
             } else {
-                modeText.innerText = "Maintain Weight";
-                modeText.className = "text-sm font-bold text-gray-900 dark:text-white";
+                modeText.innerText = "Maintain Weight"; modeText.className = "text-sm font-bold text-gray-900 dark:text-white";
                 rateText.innerText = `0.0 lbs/wk`;
             }
 
-            if (val < -500 || val > 500) {
-                warning.classList.remove('hidden');
-            } else {
-                warning.classList.add('hidden');
-            }
+            if (val < -500 || val > 500) warning.classList.remove('hidden');
+            else warning.classList.add('hidden');
         };
 
         function startDrag(e, thumbNum) {
@@ -934,7 +873,7 @@
             localStorage.setItem('mt_userGoals', JSON.stringify(userGoals));
             updateGoalsUI();
             updateDashboardUI();
-            window.syncProfileToCloud(); // Phase 3 trigger
+            window.syncProfileToCloud(); 
             showToast("Custom goals saved locally!", "success");
         };
 
@@ -960,7 +899,7 @@
             updateGoalsUI();
             updateDashboardUI();
             initSliderVals(); 
-            window.syncProfileToCloud(); // Phase 3 trigger
+            window.syncProfileToCloud(); 
             showToast("Goals updated from Apple Health data!", "success");
         };
 
@@ -1027,11 +966,9 @@
 
                 const newEntry = { id: uniqueId, ...data, dateLogged: isoDate, description: description || "" };
 
-                // 1. Save locally for instant UI update
                 allFoods.push(newEntry);
                 localStorage.setItem('mt_allFoods', JSON.stringify(allFoods));
                 
-                // 2. NEW PHASE 2: Save to Firestore if logged in
                 if (FIREBASE_ENABLED && currentUser) {
                     try {
                         window.db.collection('artifacts').doc(appId).collection('users').doc(currentUser.uid).collection('foods').doc(uniqueId).set(newEntry);
@@ -1041,23 +978,17 @@
                 updateDashboardUI();
                 renderHistory();
 
-                // 3. Keep old Google Sheet backup running until credits exhaust
                 try {
                     fetch(GOOGLE_SHEETS_URL, {
-                        method: "POST", 
-                        mode: "no-cors",
+                        method: "POST", mode: "no-cors",
                         headers: { "Content-Type": "text/plain;charset=utf-8" },
                         body: JSON.stringify({ 
-                            action: "add", 
-                            id: uniqueId, 
-                            ...data, 
-                            description: description,
-                            date: new Date(isoDate).toLocaleDateString(),
-                            time: new Date(isoDate).toLocaleTimeString(),
+                            action: "add", id: uniqueId, ...data, description: description,
+                            date: new Date(isoDate).toLocaleDateString(), time: new Date(isoDate).toLocaleTimeString(),
                             user: window.userGoals.displayName || "Anonymous"
                         })
                     });
-                } catch(e) { console.error("Sheet backup failed", e); }
+                } catch(e) {}
 
                 window.showToast(`Logged ${data.foodName} (${data.calories} kcal)`, "success");
                 
@@ -1110,12 +1041,8 @@
                 const dayCals = dayFoods.reduce((sum, f) => sum + (f.calories || 0), 0);
                 const isWithinBuffer = Math.abs(dayCals - userGoals.cals) <= buffer;
                 
-                if (i === 0) {
-                    if (isWithinBuffer) streak++; 
-                } else {
-                    if (isWithinBuffer) streak++;
-                    else break; 
-                }
+                if (i === 0) { if (isWithinBuffer) streak++; } 
+                else { if (isWithinBuffer) streak++; else break; }
             }
             document.getElementById('streakCountText').innerText = streak;
             return streak;
@@ -1125,8 +1052,7 @@
             const ctx = document.getElementById('weeklyChart').getContext('2d');
             if (weeklyChartInstance) weeklyChartInstance.destroy();
             
-            const labels = [];
-            const data = [];
+            const labels = []; const data = [];
             for(let i=6; i>=0; i--) {
                 const d = new Date();
                 d.setDate(d.getDate() - i);
@@ -1245,7 +1171,6 @@
             allFoods = allFoods.filter(f => f.id !== id);
             localStorage.setItem('mt_allFoods', JSON.stringify(allFoods));
             
-            // NEW PHASE 2: Delete from Firestore
             if (FIREBASE_ENABLED && currentUser) {
                 try {
                     window.db.collection('artifacts').doc(appId).collection('users').doc(currentUser.uid).collection('foods').doc(id).delete();
@@ -1255,14 +1180,6 @@
             updateDashboardUI();
             renderHistory();
             window.showToast("Food deleted", "success");
-            
-            try {
-                fetch(GOOGLE_SHEETS_URL, {
-                    method: "POST", mode: "no-cors", 
-                    headers: { "Content-Type": "text/plain;charset=utf-8" },
-                    body: JSON.stringify({ action: "delete", id: id })
-                });
-            } catch(err) {}
         };
 
         window.updateQty = (id, delta, e) => {
@@ -1271,33 +1188,24 @@
             if (!food) return;
             
             if (!food.baseCalories) {
-                food.servings = 1;
-                food.baseCalories = food.calories;
-                food.baseProtein = food.protein;
-                food.baseCarbs = food.carbs;
-                food.baseFat = food.fat;
-                food.baseFiber = food.fiber || 0;
-                food.baseSugar = food.sugar || 0;
+                food.servings = 1; food.baseCalories = food.calories; food.baseProtein = food.protein;
+                food.baseCarbs = food.carbs; food.baseFat = food.fat; food.baseFiber = food.fiber || 0; food.baseSugar = food.sugar || 0;
             }
             
             const newServings = food.servings + delta;
             if (newServings < 1) return; 
             
             food.servings = newServings;
-            food.calories = food.baseCalories * newServings;
-            food.protein = food.baseProtein * newServings;
-            food.carbs = food.baseCarbs * newServings;
-            food.fat = food.baseFat * newServings;
-            food.fiber = food.baseFiber * newServings;
-            food.sugar = food.baseSugar * newServings;
+            food.calories = food.baseCalories * newServings; food.protein = food.baseProtein * newServings;
+            food.carbs = food.baseCarbs * newServings; food.fat = food.baseFat * newServings;
+            food.fiber = food.baseFiber * newServings; food.sugar = food.baseSugar * newServings;
             
             localStorage.setItem('mt_allFoods', JSON.stringify(allFoods));
             
-            // NEW PHASE 2: Update Firestore
             if (FIREBASE_ENABLED && currentUser) {
                 try {
                     window.db.collection('artifacts').doc(appId).collection('users').doc(currentUser.uid).collection('foods').doc(id).set(food, { merge: true });
-                } catch (err) { console.error("Cloud update failed", err); }
+                } catch (err) {}
             }
             
             updateDashboardUI();
@@ -1311,42 +1219,19 @@
             
             const isoDate = new Date().toISOString();
             const uniqueId = Date.now().toString();
-            
-            const newEntry = { 
-                ...oldFood, 
-                id: uniqueId, 
-                dateLogged: isoDate,
-                servings: oldFood.servings || 1 
-            };
+            const newEntry = { ...oldFood, id: uniqueId, dateLogged: isoDate, servings: oldFood.servings || 1 };
             
             allFoods.push(newEntry);
             localStorage.setItem('mt_allFoods', JSON.stringify(allFoods));
             
-            // NEW PHASE 2: Save to Firestore
             if (FIREBASE_ENABLED && currentUser) {
-                try {
-                    window.db.collection('artifacts').doc(appId).collection('users').doc(currentUser.uid).collection('foods').doc(uniqueId).set(newEntry);
-                } catch (err) { console.error("Cloud save failed", err); }
+                try { window.db.collection('artifacts').doc(appId).collection('users').doc(currentUser.uid).collection('foods').doc(uniqueId).set(newEntry); } 
+                catch (err) {}
             }
             
             updateDashboardUI();
             renderHistory();
             window.showToast(`Logged ${newEntry.foodName} again!`, "success");
-            
-            try {
-                fetch(GOOGLE_SHEETS_URL, {
-                    method: "POST", mode: "no-cors", 
-                    headers: { "Content-Type": "text/plain;charset=utf-8" },
-                    body: JSON.stringify({ 
-                        action: "add", id: uniqueId, 
-                        foodName: newEntry.foodName, calories: newEntry.calories,
-                        protein: newEntry.protein, carbs: newEntry.carbs, fat: newEntry.fat,
-                        description: newEntry.description || "",
-                        date: new Date(isoDate).toLocaleDateString(), time: new Date(isoDate).toLocaleTimeString(),
-                        user: window.userGoals.displayName || "Anonymous"
-                    })
-                });
-            } catch(e) {}
         };
 
         function renderHistory() {
@@ -1362,34 +1247,6 @@
                         </div>
                         <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-1">Welcome to MacroTrack</h3>
                         <p class="text-sm text-gray-500 dark:text-gray-400 mb-6 px-4">Snap a photo or type a name. We automatically analyze complex dishes, mixed bowls, and hidden ingredients.</p>
-                        
-                        <div class="text-left opacity-60 pointer-events-none max-w-sm mx-auto">
-                            <div class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Example Logs</div>
-                            
-                            <div class="bg-white dark:bg-gray-900 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 flex justify-between items-center mb-3">
-                                <div>
-                                    <h4 class="font-bold text-gray-900 dark:text-gray-100 leading-tight mb-1">Spicy Ahi Poke Bowl</h4>
-                                    <p class="text-[10px] text-gray-400 dark:text-gray-500 mb-1 italic">Ahi tuna, edamame, avocado, and spicy mayo over sushi rice.</p>
-                                    <p class="text-xs text-gray-500 flex gap-2"><span class="font-bold">520 kcal</span><span>| P:35g C:45g F:22g</span></p>
-                                </div>
-                            </div>
-
-                            <div class="bg-white dark:bg-gray-900 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 flex justify-between items-center mb-3">
-                                <div>
-                                    <h4 class="font-bold text-gray-900 dark:text-gray-100 leading-tight mb-1">Oaxacan Chicken Mole</h4>
-                                    <p class="text-[10px] text-gray-400 dark:text-gray-500 mb-1 italic">Shredded chicken in a rich, dark chili and chocolate sauce with sesame seeds.</p>
-                                    <p class="text-xs text-gray-500 flex gap-2"><span class="font-bold">610 kcal</span><span>| P:40g C:35g F:32g</span></p>
-                                </div>
-                            </div>
-
-                            <div class="bg-white dark:bg-gray-900 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 flex justify-between items-center mb-3">
-                                <div>
-                                    <h4 class="font-bold text-gray-900 dark:text-gray-100 leading-tight mb-1">Shakshuka with Feta</h4>
-                                    <p class="text-[10px] text-gray-400 dark:text-gray-500 mb-1 italic">Two poached eggs in a spiced tomato and bell pepper stew.</p>
-                                    <p class="text-xs text-gray-500 flex gap-2"><span class="font-bold">340 kcal</span><span>| P:18g C:12g F:24g</span></p>
-                                </div>
-                            </div>
-                        </div>
                     </div>
                 `;
                 return;
@@ -1442,8 +1299,6 @@
             });
         }
 
-        // STREAMING_CHUNK: Phase 3 Social Logic & API
-        
         let friendsUnsubscribe = null;
         
         window.loadSocialData = () => {
@@ -1454,7 +1309,6 @@
             
             if(friendsUnsubscribe) friendsUnsubscribe();
             
-            // Listen for friend updates in real-time
             friendsUnsubscribe = window.db.collection('artifacts').doc(appId).collection('users').doc(currentUser.uid).collection('friends').onSnapshot(async (snapshot) => {
                 const pending = [];
                 const accepted = [];
@@ -1480,14 +1334,12 @@
             
             btn.innerHTML = '<i class="ph-bold ph-spinner animate-spin"></i>';
             try {
-                // Find user by their username
                 const unRef = window.db.collection('artifacts').doc(appId).collection('public').doc('data').collection('usernames').doc(username);
                 const unDoc = await unRef.get();
                 if(!unDoc.exists) throw new Error("User not found");
                 
                 const friendUid = unDoc.data().uid;
                 
-                // Write the two-way relationship
                 const myRef = window.db.collection('artifacts').doc(appId).collection('users').doc(currentUser.uid).collection('friends').doc(friendUid);
                 const theirRef = window.db.collection('artifacts').doc(appId).collection('users').doc(friendUid).collection('friends').doc(currentUser.uid);
                 
@@ -1556,11 +1408,9 @@
             
             for(const friend of friends) {
                 try {
-                    // 1. Fetch friend's profile for their calorie goal
                     const profileDoc = await window.db.collection('artifacts').doc(appId).collection('users').doc(friend.uid).collection('profile').doc('main').get();
                     const friendGoals = profileDoc.data()?.goals || { cals: 2000 };
                     
-                    // 2. Fetch friend's foods for TODAY only
                     const foodsSnap = await window.db.collection('artifacts').doc(appId).collection('users').doc(friend.uid).collection('foods').get();
                     
                     let todayCals = 0;
@@ -1574,27 +1424,20 @@
                         }
                     });
                     
-                    // Store today's foods in global memory so the modal can pop them up instantly without reloading
                     window[`ffoods_${friend.uid}`] = todayFoods.sort((a,b) => new Date(b.dateLogged) - new Date(a.dateLogged));
                     
-                    // 3. Build UI
                     const pct = Math.min(100, (todayCals / friendGoals.cals) * 100);
                     const barColor = pct > 100 ? 'bg-red-500' : 'bg-blue-500';
                     
                     feedHTML += `
                         <div class="bg-white dark:bg-gray-900 p-3 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 flex items-center gap-4 cursor-pointer active:scale-[0.98] transition-transform" onclick="openFriendModal('${friend.uid}', '${friend.username}')">
-                            <!-- Avatar -->
                             <div class="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center font-bold text-gray-600 dark:text-gray-300 shrink-0 uppercase">${friend.username.charAt(0)}</div>
-                            
-                            <!-- Middle: Username & Progress Bar -->
                             <div class="flex-1 min-w-0">
                                 <h4 class="font-bold text-gray-900 dark:text-white truncate text-sm mb-1">@${friend.username}</h4>
                                 <div class="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-1.5">
                                     <div class="${barColor} h-full rounded-full transition-all duration-500" style="width: ${pct}%"></div>
                                 </div>
                             </div>
-                            
-                            <!-- Right: Cals / Goal -->
                             <div class="shrink-0 text-right w-16">
                                 <div class="font-black text-gray-900 dark:text-white leading-tight">${Math.round(todayCals)}</div>
                                 <div class="text-[9px] text-gray-400 font-bold uppercase">/ ${friendGoals.cals}</div>
@@ -1642,7 +1485,7 @@
             setTimeout(() => { modal.classList.add('hidden'); modal.classList.remove('flex'); }, 200); 
         };
 
-        // Initialize UI
+        // Initialize UI Elements
         updateGoalsUI();
         updateDashboardUI();
         renderHistory();
