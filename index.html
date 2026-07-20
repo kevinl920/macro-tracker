@@ -1871,22 +1871,28 @@
             if (e.target.id === 'friendFoodsModal') window.closeFriendModal();
         });
 
+        let savedScrollY = 0;
+
         window.openSageChat = () => {
             const overlay = document.getElementById('sageChatOverlay');
             overlay.classList.remove('translate-y-full');
             overlay.classList.add('translate-y-0');
             
-            // Lock body scroll to prevent iOS from aggressively pushing the background page
-            document.body.style.overflow = 'hidden';
+            // 1. Lock the body absolutely firm so Safari cannot shove the document up
+            savedScrollY = window.scrollY;
+            document.body.style.position = 'fixed';
+            document.body.style.top = `-${savedScrollY}px`;
+            document.body.style.width = '100%';
             
-            // Give input focus after animation completes
+            // 2. Force layout sync instantly before keyboard even opens
+            if (window.visualViewport) {
+                overlay.style.height = window.visualViewport.height + 'px';
+                overlay.style.top = window.visualViewport.offsetTop + 'px';
+            }
+            
             setTimeout(() => {
                 const input = document.getElementById('sageChatInput');
-                if (input) {
-                    input.focus();
-                    // iOS Safari fallback: snap the window back down if the keyboard shoved it up
-                    setTimeout(() => window.scrollTo(0, 0), 100);
-                }
+                if (input) input.focus();
             }, 300);
         };
         
@@ -1895,11 +1901,36 @@
             overlay.classList.remove('translate-y-0');
             overlay.classList.add('translate-y-full');
             
-            // Unlock body scroll
-            document.body.style.overflow = '';
+            // Release the body lock
+            document.body.style.position = '';
+            document.body.style.top = '';
+            document.body.style.width = '';
             
-            document.getElementById('sageChatInput').blur(); // Close keyboard
+            // Restore original scroll
+            window.scrollTo(0, savedScrollY);
+            
+            // Reset overlay styles so it transitions nicely down and doesn't glitch next time
+            setTimeout(() => {
+                overlay.style.height = '100dvh';
+                overlay.style.top = '0px';
+            }, 300);
+            
+            document.getElementById('sageChatInput').blur();
         };
+
+        // Bulletproof iOS Keyboard Tracker
+        if (window.visualViewport) {
+            const updateOverlayLayout = () => {
+                const overlay = document.getElementById('sageChatOverlay');
+                // Only hijack the layout if the chat is actually open
+                if (!overlay.classList.contains('translate-y-full')) {
+                    overlay.style.height = window.visualViewport.height + 'px';
+                    overlay.style.top = window.visualViewport.offsetTop + 'px';
+                }
+            };
+            window.visualViewport.addEventListener('resize', updateOverlayLayout);
+            window.visualViewport.addEventListener('scroll', updateOverlayLayout);
+        }
 
         window.sendSageMessage = () => {
             const input = document.getElementById('sageChatInput');
