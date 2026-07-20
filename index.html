@@ -2034,7 +2034,7 @@
             }
         }
 
-        window.openSageChat = async () => {
+         window.openSageChat = async () => {
             chatIsOpen = true;
             
             // iOS Aggressive Viewport Lock
@@ -2055,11 +2055,10 @@
                         let msgs = snapshot.docs.map(d => d.data());
                         
                         if (msgs.length === 0) {
-                            // NEW: First time opening chat ever! Save intro to Firestore.
+                            // First time opening chat ever! Save intro to Firestore.
                             isFirstTimeEver = true;
                             const welcomeMsg = "Hello. I am Sage. I am here to help you navigate your habits and goals with patience and perspective. The tide rises and falls, but the journey continues. What is on your mind today?";
                             
-                            // Slight delay so it appears smoothly after the panel slides up
                             setTimeout(async () => {
                                 appendBubble(welcomeMsg, 'model');
                                 await saveMessageToCloud(welcomeMsg, 'model');
@@ -2073,21 +2072,20 @@
                     } catch (e) { console.error("Error loading UI history", e); }
                 }
                 
-                // 2. Daily Greeting Trigger (Cost-saving: once per day)
+                // 2. Daily Greeting Trigger
                 const todayStr = new Date().toDateString();
                 const lastGreeting = localStorage.getItem('mt_sageGreetingDate');
                 
                 if (isFirstTimeEver) {
-                    // Skip the AI greeting today so we don't send 2 messages at once. 
-                    // Daily AI greetings will naturally take over tomorrow!
                     localStorage.setItem('mt_sageGreetingDate', todayStr);
                 } else if (lastGreeting !== todayStr) {
                     localStorage.setItem('mt_sageGreetingDate', todayStr);
-                    // Wait for the slide-up animation to finish, then trigger Sage's brain
                     setTimeout(() => { callGemini("", true); }, 600); 
-                } else if (chatArea.children.length === 0 && (!FIREBASE_ENABLED || !currentUser)) {
-                    // Fallback for Guest Mode
-                    appendBubble("Hello. I am Sage. I am here to help you navigate your habits and goals with patience and perspective. The tide rises and falls, but the journey continues. What is on your mind today?", 'model');
+                } else {
+                    // Second time opening app today! Add a free, fast, local greeting
+                    setTimeout(() => {
+                        appendBubble("Welcome back! Ask me anything or tell me what you've eaten.", 'model');
+                    }, 500);
                 }
             }
             
@@ -2095,7 +2093,7 @@
                 chatArea.scrollTop = chatArea.scrollHeight;
             }, 300);
         };
-        
+
         window.closeSageChat = () => {
             chatIsOpen = false;
             overlay.classList.add('translate-y-full');
