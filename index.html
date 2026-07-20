@@ -475,7 +475,7 @@
             window.auth = firebase.auth();
             window.db = firebase.firestore();
 
-            let authCheckComplete = false;
+            const wasRedirecting = localStorage.getItem('mt_isRedirecting') === 'true';
 
             const showLoginButtons = () => {
                 if(!sessionStorage.getItem('guestMode')) {
@@ -484,28 +484,29 @@
                     document.getElementById('authLoadingState').classList.add('hidden');
                     document.getElementById('authActionButtons').classList.remove('hidden');
                     document.getElementById('authActionButtons').classList.add('flex');
+                    const btn = document.getElementById('googleLoginBtn');
+                    if (btn) btn.innerHTML = '<i class="ph-fill ph-google-logo text-xl"></i> Continue with Google';
                 }
             };
 
-            // Force Local Persistence and await redirect check securely
-            window.auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
-                .then(() => window.auth.getRedirectResult())
-                .then((result) => {
-                    authCheckComplete = true;
-                    if (result && result.user) {
-                        console.log("Redirect success!");
-                    } else if (!currentUser) {
-                        showLoginButtons();
-                    }
-                })
-                .catch(error => {
-                    authCheckComplete = true;
-                    console.error("Redirect Error:", error);
-                    window.showToast("Login error: " + error.message, "error");
-                    showLoginButtons();
-                    const btn = document.getElementById('googleLoginBtn');
-                    if (btn) btn.innerHTML = '<i class="ph-fill ph-google-logo text-xl"></i> Continue with Google';
-                });
+            if (wasRedirecting) {
+                // Lock the spinner ON immediately if we know they just tapped the button
+                document.getElementById('authOverlay').classList.remove('hidden');
+                document.getElementById('authOverlay').classList.add('flex');
+                document.getElementById('authLoadingState').classList.remove('hidden');
+                document.getElementById('authActionButtons').classList.add('hidden');
+            }
+
+            // Pure, simple redirect catcher without wrappers
+            window.auth.getRedirectResult().then((result) => {
+                if (result && result.user) {
+                    localStorage.removeItem('mt_isRedirecting');
+                }
+            }).catch(error => {
+                localStorage.removeItem('mt_isRedirecting');
+                window.showToast("Login error: " + error.message, "error");
+                showLoginButtons();
+            });
 
             window.auth.onAuthStateChanged(async user => {
                 const overlay = document.getElementById('authOverlay');
@@ -554,15 +555,18 @@
                     signOutBtn.classList.add('hidden');
                     signInBtn.classList.remove('hidden');
                     
-                    if(authCheckComplete) {
+                    if (localStorage.getItem('mt_isRedirecting') === 'true') {
+                        // Give it 3 seconds to catch up in case network is slow. 
+                        // If still null, iOS wiped the cookie.
+                        setTimeout(() => {
+                            if (!currentUser) {
+                                localStorage.removeItem('mt_isRedirecting');
+                                showLoginButtons();
+                                window.showToast("iOS blocked login. Log in via Safari, then add to Home Screen.", "error");
+                            }
+                        }, 3000);
+                    } else {
                         showLoginButtons();
-                    } else if(!sessionStorage.getItem('guestMode')) {
-                        // Keep loading screen visible if we don't know yet
-                        overlay.classList.remove('hidden');
-                        overlay.classList.add('flex');
-                        document.getElementById('authLoadingState').classList.remove('hidden');
-                        document.getElementById('authActionButtons').classList.add('hidden');
-                        document.getElementById('authActionButtons').classList.remove('flex');
                     }
                 }
             });
@@ -605,13 +609,15 @@
             if (!FIREBASE_ENABLED) return;
             sessionStorage.removeItem('guestMode'); 
             
+            // Set flag to trigger spinner when app reloads
+            localStorage.setItem('mt_isRedirecting', 'true');
+            
             const btn = document.getElementById('googleLoginBtn');
             if (btn) btn.innerHTML = '<i class="ph ph-spinner animate-spin text-xl"></i> Connecting...';
             
+            // Reverted to pure redirect without the setPersistence wrapper that can cause race conditions
             const provider = new firebase.auth.GoogleAuthProvider();
-            window.auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).then(() => {
-                window.auth.signInWithRedirect(provider);
-            });
+            window.auth.signInWithRedirect(provider);
         };
 
         window.signOut = () => {
