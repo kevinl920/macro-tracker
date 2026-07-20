@@ -320,7 +320,7 @@
         <div class="flex items-center gap-3">
             <!-- Sage Avatar Button -->
             <button onclick="openSageChat()" class="sage-mini-btn" aria-label="Ask Sage">
-                <div class="sage-mini">
+                <div class="sage-mini pointer-events-none">
                     <div class="sage-mini-flipper-back"></div>
                     <div class="sage-mini-shell"></div>
                     <div class="sage-mini-head"></div>
@@ -1872,13 +1872,20 @@
         });
 
         window.openSageChat = () => {
-            document.getElementById('sageChatOverlay').classList.remove('translate-y-full');
+            const overlay = document.getElementById('sageChatOverlay');
+            overlay.classList.remove('translate-y-full');
+            overlay.classList.add('translate-y-0');
             // Give input focus after animation completes
-            setTimeout(() => document.getElementById('sageChatInput').focus(), 300);
+            setTimeout(() => {
+                const input = document.getElementById('sageChatInput');
+                if (input) input.focus();
+            }, 300);
         };
         
         window.closeSageChat = () => {
-            document.getElementById('sageChatOverlay').classList.add('translate-y-full');
+            const overlay = document.getElementById('sageChatOverlay');
+            overlay.classList.remove('translate-y-0');
+            overlay.classList.add('translate-y-full');
             document.getElementById('sageChatInput').blur(); // Close keyboard
         };
 
