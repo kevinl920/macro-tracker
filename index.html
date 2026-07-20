@@ -361,17 +361,7 @@
         
         <!-- Chat Area (Fixed scrolling with min-h-0 and overscroll-contain) -->
         <div id="sageChatArea" class="flex-1 overflow-y-auto p-4 bg-gray-50 dark:bg-gray-950 pb-4 min-h-0 overscroll-none touch-pan-y">
-            <!-- Initial Greeting -->
-            <div class="flex gap-2 max-w-[85%] chat-bubble clear-both float-left mb-3 w-full">
-                <!-- Mini Chat Avatar -->
-                <div class="w-7 h-7 shrink-0 flex items-end justify-center mt-1 relative">
-                    <div class="absolute top-1 left-0 w-6 h-5 bg-[#8c423f] border border-[#5a2624] rounded-t-full rounded-bl-sm rounded-br-lg z-10"></div>
-                    <div class="absolute top-2.5 -right-1 w-3.5 h-3 bg-[#a3c065] border border-[#7a9350] rounded-full z-20"></div>
-                </div>
-                <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 px-4 py-3 rounded-2xl rounded-tl-sm text-sm shadow-sm leading-relaxed">
-                    Hi there! I'm Sage. 🐢 Need help calculating macros for a tricky meal, or looking for recipe ideas?
-                </div>
-            </div>
+            <!-- Messages will be injected here dynamically via JS -->
         </div>
 
         <!-- Input Bar -->
@@ -1868,98 +1858,214 @@
         };
 
         let chatIsOpen = false;
+        let isSageTyping = false;
         const overlay = document.getElementById('sageChatOverlay');
         const chatArea = document.getElementById('sageChatArea');
         const chatInput = document.getElementById('sageChatInput');
 
-        // The absolute gold-standard iOS Visual Viewport lock
-        function applyViewportFix() {
-            if (!chatIsOpen) return;
-            // 1. Shrink height to exact visible space above keyboard
-            overlay.style.height = window.visualViewport.height + 'px';
-            // 2. Counter-pan: Push the overlay down by the exact amount Safari pushed the page up
-            overlay.style.top = window.visualViewport.offsetTop + 'px';
+        // Helper: Fetch with Exponential Backoff
+        async function fetchWithRetry(url, options, retries = 3) {
+            for (let i = 0; i < retries; i++) {
+                try {
+                    const res = await fetch(url, options);
+                    if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+                    return res;
+                } catch (err) {
+                    if (i === retries - 1) throw err;
+                    await new Promise(r => setTimeout(r, Math.pow(2, i) * 1000));
+                }
+            }
         }
 
-        // Kill the empty-scroll background drag leak
-        overlay.addEventListener('touchmove', (e) => {
-            // Allow scrolling inside chat area ONLY if there are enough messages to scroll
-            if (chatArea.contains(e.target) && chatArea.scrollHeight > chatArea.clientHeight) {
-                return; // Let native scroll happen smoothly
-            }
-            // Otherwise, block the swipe so Safari can't drag the background page
-            e.preventDefault(); 
-        }, { passive: false });
+        // Helper: Build the dynamic System Prompt
+        function getSageSystemPrompt() {
+            const todayFoods = getTodayFoods().map(f => f.foodName).join(', ') || 'No foods logged yet today.';
+            const cals = document.getElementById('floatCals').innerText;
+            const goalCals = document.getElementById('floatGoalCals').innerText;
+            
+            return `You are Sage, a wise, calm, and supportive sea turtle health mentor. Keep responses short (under 3 sentences), focus on long-term wellness and consistency, and use a soothing, patient tone. Never shame the user.
+            
+            User's Current Context:
+            - Calorie Progress Today: ${cals} / ${goalCals} kcal
+            - Foods eaten today: ${todayFoods}`;
+        }
 
-        window.openSageChat = () => {
+        // UI: Append a bubble to the chat
+        function appendBubble(text, role) {
+            const bubble = document.createElement('div');
+            
+            if (role === 'user') {
+                bubble.className = "flex gap-2 max-w-[85%] chat-bubble clear-both float-right mb-3 w-full justify-end";
+                bubble.innerHTML = `<div class="bg-emerald-500 text-white px-4 py-3 rounded-2xl rounded-tr-sm text-sm shadow-sm leading-relaxed">${text}</div>`;
+            } else {
+                bubble.className = "flex gap-2 max-w-[85%] chat-bubble clear-both float-left mb-3 w-full";
+                bubble.innerHTML = `
+                    <div class="w-7 h-7 shrink-0 flex items-end justify-center mt-1 relative">
+                        <div class="absolute top-1 left-0 w-6 h-5 bg-[#8c423f] border border-[#5a2624] rounded-t-full rounded-bl-sm rounded-br-lg z-10"></div>
+                        <div class="absolute top-2.5 -right-1 w-3.5 h-3 bg-[#a3c065] border border-[#7a9350] rounded-full z-20"></div>
+                    </div>
+                    <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 px-4 py-3 rounded-2xl rounded-tl-sm text-sm shadow-sm leading-relaxed">
+                        ${text}
+                    </div>
+                `;
+            }
+            
+            chatArea.appendChild(bubble);
+            chatArea.scrollTop = chatArea.scrollHeight;
+        }
+
+        // UI: Show/Hide Typing Indicator
+        function toggleTyping(show) {
+            if (show) {
+                const typing = document.createElement('div');
+                typing.id = "sageTypingIndicator";
+                typing.className = "flex gap-2 max-w-[85%] chat-bubble clear-both float-left mb-3 w-full";
+                typing.innerHTML = `
+                    <div class="w-7 h-7 shrink-0 flex items-end justify-center mt-1 relative">
+                        <div class="absolute top-1 left-0 w-6 h-5 bg-[#8c423f] border border-[#5a2624] rounded-t-full rounded-bl-sm rounded-br-lg z-10"></div>
+                        <div class="absolute top-2.5 -right-1 w-3.5 h-3 bg-[#a3c065] border border-[#7a9350] rounded-full z-20"></div>
+                    </div>
+                    <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-4 py-3 rounded-2xl rounded-tl-sm text-sm shadow-sm flex items-center gap-1">
+                        <span class="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-bounce" style="animation-delay: 0s;"></span>
+                        <span class="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-bounce" style="animation-delay: 0.2s;"></span>
+                        <span class="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-bounce" style="animation-delay: 0.4s;"></span>
+                    </div>
+                `;
+                chatArea.appendChild(typing);
+                chatArea.scrollTop = chatArea.scrollHeight;
+            } else {
+                const indicator = document.getElementById('sageTypingIndicator');
+                if (indicator) indicator.remove();
+            }
+        }
+
+        // Data: Save message to Firestore
+        async function saveMessageToCloud(text, role) {
+            if (!FIREBASE_ENABLED || !currentUser) return;
+            try {
+                const timestamp = Date.now();
+                await window.db.collection('artifacts').doc(appId).collection('users').doc(currentUser.uid).collection('chatHistory').doc(timestamp.toString()).set({
+                    text: text, role: role, timestamp: timestamp
+                });
+            } catch (e) { console.error("Error saving chat:", e); }
+        }
+
+        // Data: Get Last 10 Messages
+        async function getRecentContext() {
+            if (!FIREBASE_ENABLED || !currentUser) return [];
+            try {
+                // Fetch all and sort/slice in JS memory to avoid complex Firestore indexing requirements
+                const snapshot = await window.db.collection('artifacts').doc(appId).collection('users').doc(currentUser.uid).collection('chatHistory').get();
+                let msgs = snapshot.docs.map(d => d.data());
+                msgs.sort((a, b) => a.timestamp - b.timestamp);
+                
+                // Gemini format requires { role: 'user'|'model', parts: [{ text }] }
+                return msgs.slice(-10).map(m => ({
+                    role: m.role,
+                    parts: [{ text: m.text }]
+                }));
+            } catch (e) {
+                console.error("Error fetching context:", e);
+                return [];
+            }
+        }
+
+        // API Logic: The Core Gemini Call routed through Google Apps Script
+        async function callGemini(userText, isDailyGreeting = false) {
+            toggleTyping(true);
+            
+            try {
+                let history = await getRecentContext();
+                
+                if (isDailyGreeting) {
+                    history.push({ role: 'user', parts: [{ text: "Please look at my food logs and calorie progress for today and give me a personalized, short daily greeting as Sage. Remind me I can ask you anything." }] });
+                } else {
+                    history.push({ role: 'user', parts: [{ text: userText }] });
+                }
+
+                const response = await fetchWithRetry(GOOGLE_SHEETS_URL, {
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({
+                        action: "chat",
+                        contents: history,
+                        systemInstruction: { parts: [{ text: getSageSystemPrompt() }] }
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.status === "error") throw new Error(result.message);
+                
+                // Navigate the nested JSON response returned from your Google Script
+                const sageReply = result.data?.candidates?.[0]?.content?.parts?.[0]?.text || "I'm having a little trouble thinking right now, but I'm here for you!";
+                
+                toggleTyping(false);
+                appendBubble(sageReply, 'model');
+                await saveMessageToCloud(sageReply, 'model');
+
+            } catch (err) {
+                console.error("Gemini Error:", err);
+                toggleTyping(false);
+                appendBubble("Sorry, the currents are a bit rough right now and my connection dropped. Try asking me again in a moment! 🐢", 'model');
+            }
+        }
+
+        window.openSageChat = async () => {
             chatIsOpen = true;
-            
-            // Set initial dimensions based on visual viewport before sliding up
-            overlay.style.height = window.visualViewport.height + 'px';
-            overlay.style.top = window.visualViewport.offsetTop + 'px';
-            
             overlay.classList.remove('translate-y-full');
             
-            // Hook into Apple's native keyboard shifts
-            window.visualViewport.addEventListener('resize', applyViewportFix);
-            window.visualViewport.addEventListener('scroll', applyViewportFix);
+            // 1. Initial Load: Populate existing chat history to the UI if empty
+            if (chatArea.children.length === 0) {
+                if (FIREBASE_ENABLED && currentUser) {
+                    try {
+                        const snapshot = await window.db.collection('artifacts').doc(appId).collection('users').doc(currentUser.uid).collection('chatHistory').get();
+                        let msgs = snapshot.docs.map(d => d.data());
+                        msgs.sort((a, b) => a.timestamp - b.timestamp);
+                        // Show last 20 messages visually for context history
+                        msgs.slice(-20).forEach(m => appendBubble(m.text, m.role));
+                    } catch (e) { console.error("Error loading UI history", e); }
+                }
+            }
+            
+            // 2. Daily Greeting Trigger (Cost-saving: once per day)
+            const todayStr = new Date().toDateString();
+            const lastGreeting = localStorage.getItem('mt_sageGreetingDate');
+            
+            if (lastGreeting !== todayStr) {
+                localStorage.setItem('mt_sageGreetingDate', todayStr);
+                // Wait for the slide-up animation to finish, then trigger Sage's brain
+                setTimeout(() => { callGemini("", true); }, 600); 
+            } else if (chatArea.children.length === 0) {
+                // Fallback if they open it on a new device but already had a greeting today elsewhere
+                appendBubble("Hi there! I'm Sage. 🐢 What's on your mind today?", 'model');
+            }
             
             setTimeout(() => {
-                if (chatInput) chatInput.focus();
                 chatArea.scrollTop = chatArea.scrollHeight;
             }, 300);
         };
         
         window.closeSageChat = () => {
             chatIsOpen = false;
-            
             overlay.classList.add('translate-y-full');
             if (chatInput) chatInput.blur();
-            
-            // Unhook events to free up memory
-            window.visualViewport.removeEventListener('resize', applyViewportFix);
-            window.visualViewport.removeEventListener('scroll', applyViewportFix);
-            
-            // Reset styles after it slides away
-            setTimeout(() => {
-                overlay.style.top = '0px';
-                overlay.style.height = '100%';
-            }, 300);
         };
 
-        window.sendSageMessage = () => {
+        window.sendSageMessage = async () => {
+            if (isSageTyping) return;
             const text = chatInput.value.trim();
             if (!text) return;
             
-            // 1. Add User Message
-            const userBubble = document.createElement('div');
-            userBubble.className = "flex gap-2 max-w-[85%] chat-bubble clear-both float-right mb-3 w-full justify-end";
-            userBubble.innerHTML = `
-                <div class="bg-emerald-500 text-white px-4 py-3 rounded-2xl rounded-tr-sm text-sm shadow-sm leading-relaxed">
-                    ${text}
-                </div>
-            `;
-            chatArea.appendChild(userBubble);
+            // Update UI & Local state instantly
             chatInput.value = "";
-            chatArea.scrollTop = chatArea.scrollHeight;
+            appendBubble(text, 'user');
             
-            // 2. Mock Sage Response
-            setTimeout(() => {
-                const sageBubble = document.createElement('div');
-                sageBubble.className = "flex gap-2 max-w-[85%] chat-bubble clear-both float-left mb-3 w-full";
-                sageBubble.innerHTML = `
-                    <!-- Mini Chat Avatar -->
-                    <div class="w-7 h-7 shrink-0 flex items-end justify-center mt-1 relative">
-                        <div class="absolute top-1 left-0 w-6 h-5 bg-[#8c423f] border border-[#5a2624] rounded-t-full rounded-bl-sm rounded-br-lg z-10"></div>
-                        <div class="absolute top-2.5 -right-1 w-3.5 h-3 bg-[#a3c065] border border-[#7a9350] rounded-full z-20"></div>
-                    </div>
-                    <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 px-4 py-3 rounded-2xl rounded-tl-sm text-sm shadow-sm leading-relaxed">
-                        I'm just a UI mockup right now, but I'll be fully hooked into AI soon! 🐢
-                    </div>
-                `;
-                chatArea.appendChild(sageBubble);
-                chatArea.scrollTop = chatArea.scrollHeight;
-            }, 800);
+            // Fire API and Cloud Saves
+            isSageTyping = true;
+            await saveMessageToCloud(text, 'user');
+            await callGemini(text, false);
+            isSageTyping = false;
         };
 
         // Listen for "Enter" key in chat input
@@ -1969,6 +2075,14 @@
                 sendSageMessage();
             }
         });
+        
+        // Anti-Scroll-Leak Lock
+        overlay.addEventListener('touchmove', (e) => {
+            if (chatArea.contains(e.target) && chatArea.scrollHeight > chatArea.clientHeight) {
+                return; 
+            }
+            e.preventDefault(); 
+        }, { passive: false });
 
         // Initialize UI Elements
         updateGoalsUI();
