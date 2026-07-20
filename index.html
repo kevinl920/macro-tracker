@@ -1951,6 +1951,15 @@
             }
         });
 
+        // This permanently prevents iOS from dragging the background when the chat is empty
+        document.getElementById('sageChatOverlay').addEventListener('touchmove', function(e) {
+            const chatArea = document.getElementById('sageChatArea');
+            // If the user touches outside the chat area, OR if the chat area doesn't have enough messages to scroll yet...
+            if (!chatArea.contains(e.target) || chatArea.scrollHeight <= chatArea.clientHeight) {
+                e.preventDefault(); // ...kill the swipe so Safari can't yank the background!
+            }
+        }, { passive: false });
+
         // Initialize UI Elements
         updateGoalsUI();
         updateDashboardUI();
