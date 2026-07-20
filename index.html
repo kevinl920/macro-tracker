@@ -360,7 +360,7 @@
         </div>
         
         <!-- Chat Area (Fixed scrolling with min-h-0 and overscroll-contain) -->
-        <div id="sageChatArea" class="flex-1 overflow-y-auto p-4 bg-gray-50 dark:bg-gray-950 pb-4 min-h-0 overscroll-none touch-pan-y">
+        <div id="sageChatArea" class="flex-1 overflow-y-auto p-4 bg-gray-50 dark:bg-gray-950 pb-4 min-h-0 overscroll-none touch-pan-y" style="-webkit-overflow-scrolling: touch;">
             <!-- Messages will be injected here dynamically via JS -->
         </div>
 
@@ -1959,15 +1959,38 @@
                 let msgs = snapshot.docs.map(d => d.data());
                 msgs.sort((a, b) => a.timestamp - b.timestamp);
                 
-                // Gemini format requires { role: 'user'|'model', parts: [{ text }] }
-                return msgs.slice(-10).map(m => ({
-                    role: m.role,
-                    parts: [{ text: m.text }]
-                }));
+                // CRITICAL FIX: Gemini STRICTLY requires alternating roles starting with 'user'
+                let formatted = [];
+                let lastRole = null;
+                
+                msgs.slice(-15).forEach(m => {
+                    let role = m.role === 'model' ? 'model' : 'user'; 
+                    if (role !== lastRole) {
+                        formatted.push({ role: role, parts: [{ text: m.text }] });
+                        lastRole = role;
+                    } else if (formatted.length > 0) {
+                        // If same role twice in a row (caused by a previous crash), combine them so Gemini doesn't reject it
+                        formatted[formatted.length - 1].parts[0].text += "\n\n" + m.text;
+                    }
+                });
+                
+                // If the array accidentally starts with a model response, remove it
+                if (formatted.length > 0 && formatted[0].role === 'model') {
+                    formatted.shift(); 
+                }
+                
+                return formatted.slice(-10);
             } catch (e) {
                 console.error("Error fetching context:", e);
                 return [];
             }
+        }
+
+        function applyViewportFix() {
+            if(!chatIsOpen) return;
+            // The ultimate iOS counter-pan: pull the overlay down identically as Safari pushes the page up
+            overlay.style.top = window.visualViewport.offsetTop + 'px';
+            overlay.style.height = window.visualViewport.height + 'px';
         }
 
         // API Logic: The Core Gemini Call routed through Google Apps Script
@@ -2013,6 +2036,13 @@
 
         window.openSageChat = async () => {
             chatIsOpen = true;
+            
+            // iOS 26 Aggressive Viewport Lock
+            document.body.style.overflow = 'hidden';
+            window.visualViewport.addEventListener('resize', applyViewportFix);
+            window.visualViewport.addEventListener('scroll', applyViewportFix);
+            applyViewportFix();
+            
             overlay.classList.remove('translate-y-full');
             
             // 1. Initial Load: Populate existing chat history to the UI if empty
@@ -2050,6 +2080,13 @@
             chatIsOpen = false;
             overlay.classList.add('translate-y-full');
             if (chatInput) chatInput.blur();
+            
+            // Release iOS Lock & Reset Viewport
+            document.body.style.overflow = '';
+            window.visualViewport.removeEventListener('resize', applyViewportFix);
+            window.visualViewport.removeEventListener('scroll', applyViewportFix);
+            overlay.style.top = '0px';
+            overlay.style.height = '100dvh';
         };
 
         window.sendSageMessage = async () => {
