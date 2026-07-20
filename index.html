@@ -1177,7 +1177,7 @@
                         body: JSON.stringify({ 
                             action: "add", id: uniqueId, ...data, description: description,
                             date: new Date(isoDate).toLocaleDateString(), time: new Date(isoDate).toLocaleTimeString(),
-                            user: window.userGoals.displayName || "Anonymous"
+                            user: userGoals.displayName || "Anonymous"
                         })
                     });
                 } catch(e) {}
@@ -1547,29 +1547,48 @@
         window.sendFriendRequest = async () => {
             if(!currentUser) return window.showToast("Log in first!", "error");
             const input = document.getElementById('friendSearchInput');
-            const username = input.value.trim().toLowerCase();
+            let username = input.value.trim().toLowerCase();
             const btn = document.getElementById('addFriendBtn');
             
-            if(!username || username === window.userGoals.displayName?.toLowerCase()) return;
+            // Clean up the input in case they typed the @ symbol manually
+            if(username.startsWith('@')) {
+                username = username.substring(1);
+            }
+            
+            // Explicit error messages instead of failing silently
+            if(!username) return window.showToast("Please enter a username", "error");
+            if(username === userGoals.displayName?.toLowerCase()) {
+                return window.showToast("You can't add yourself!", "error");
+            }
             
             btn.innerHTML = '<i class="ph-bold ph-spinner animate-spin"></i>';
             try {
+                // Find user by their username
                 const unRef = window.db.collection('artifacts').doc(appId).collection('public').doc('data').collection('usernames').doc(username);
                 const unDoc = await unRef.get();
-                if(!unDoc.exists) throw new Error("User not found");
+                if(!unDoc.exists) throw new Error("User not found. Check spelling!");
                 
                 const friendUid = unDoc.data().uid;
                 
+                // Fallback in case displayName hasn't loaded yet
+                const myName = userGoals.displayName || currentUser.email.split('@')[0];
+                
+                // Write the two-way relationship
                 const myRef = window.db.collection('artifacts').doc(appId).collection('users').doc(currentUser.uid).collection('friends').doc(friendUid);
                 const theirRef = window.db.collection('artifacts').doc(appId).collection('users').doc(friendUid).collection('friends').doc(currentUser.uid);
                 
                 await myRef.set({ status: 'sent', username: username, uid: friendUid });
-                await theirRef.set({ status: 'pending', username: window.userGoals.displayName, uid: currentUser.uid });
+                await theirRef.set({ status: 'pending', username: myName, uid: currentUser.uid });
                 
-                window.showToast("Request sent!", "success");
+                window.showToast("Friend request sent!", "success");
                 input.value = "";
             } catch(e) { 
-                window.showToast(e.message, "error"); 
+                // Catch Firestore permission errors vs standard errors
+                if(e.message.includes("permission") || e.message.includes("Missing or insufficient")) {
+                    window.showToast("Firebase rules blocked the request.", "error");
+                } else {
+                    window.showToast(e.message, "error"); 
+                }
             }
             btn.innerHTML = '<i class="ph-bold ph-user-plus"></i>';
         };
