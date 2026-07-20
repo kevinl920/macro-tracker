@@ -724,7 +724,9 @@
         const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbxYk2MQbAamBncjAf6QhQFgaIL-vjLMvp7EvKWDB5xjdAdXwKb2CNnF_Oe0fs8t4eDhpA/exec";
 
         let userGoals = JSON.parse(localStorage.getItem('mt_userGoals')) || { cals: 2000, p: 150, c: 200, f: 65, water: 8 };
+        
         let allFoods = JSON.parse(localStorage.getItem('mt_allFoods')) || [];
+
         let base64Image = null;
         let imageMimeType = null;
         let todayWater = parseInt(localStorage.getItem('mt_water_' + new Date().toDateString())) || 0;
@@ -1330,12 +1332,40 @@
             
             if(sortedFoods.length === 0) {
                 list.innerHTML = `
-                    <div class="text-center py-8">
-                        <div class="w-16 h-16 bg-gray-50 dark:bg-gray-800 text-gray-500 rounded-full flex items-center justify-center mx-auto mb-3">
-                            <i class="ph ph-camera-plus text-3xl"></i>
+                    <div class="text-center pt-8 pb-6">
+                        <div class="w-16 h-16 bg-gray-100 dark:bg-gray-800/50 text-gray-400 dark:text-gray-500 rounded-full flex items-center justify-center mx-auto mb-4 border border-gray-200 dark:border-gray-700">
+                            <i class="ph ph-camera text-2xl"></i>
                         </div>
-                        <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-1">Welcome to MacroTrack</h3>
-                        <p class="text-sm text-gray-500 dark:text-gray-400 mb-6 px-4">Snap a photo or type a name. We automatically analyze complex dishes, mixed bowls, and hidden ingredients.</p>
+                        <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">Welcome to MacroTrack</h3>
+                        <p class="text-sm text-gray-500 dark:text-gray-400 max-w-[280px] mx-auto leading-relaxed">
+                            Snap a photo or type a name. We instantly estimate calories and macros for complex dishes, mixed bowls, and more.
+                        </p>
+                    </div>
+
+                    <div class="mt-4 pb-4">
+                        <h4 class="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-3">Example Logs</h4>
+                        <div class="space-y-3">
+                            <div class="bg-white dark:bg-gray-900 p-4 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm">
+                                <h5 class="font-bold text-gray-900 dark:text-white mb-1">Spicy Ahi Poke Bowl</h5>
+                                <p class="text-xs text-gray-400 dark:text-gray-500 italic mb-2">Ahi tuna, edamame, avocado, and spicy mayo over sushi rice.</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400"><span class="font-bold text-gray-700 dark:text-gray-300">520 kcal</span> | P:35g C:45g F:22g</p>
+                            </div>
+                            <div class="bg-white dark:bg-gray-900 p-4 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm">
+                                <h5 class="font-bold text-gray-900 dark:text-white mb-1">Oaxacan Chicken Mole</h5>
+                                <p class="text-xs text-gray-400 dark:text-gray-500 italic mb-2">Shredded chicken in a rich, dark chili and chocolate sauce with sesame seeds.</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400"><span class="font-bold text-gray-700 dark:text-gray-300">610 kcal</span> | P:40g C:35g F:32g</p>
+                            </div>
+                            <div class="bg-white dark:bg-gray-900 p-4 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm">
+                                <h5 class="font-bold text-gray-900 dark:text-white mb-1">Shakshuka with Feta</h5>
+                                <p class="text-xs text-gray-400 dark:text-gray-500 italic mb-2">Two poached eggs in a spiced tomato and bell pepper stew.</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400"><span class="font-bold text-gray-700 dark:text-gray-300">340 kcal</span> | P:18g C:12g F:24g</p>
+                            </div>
+                            <div class="bg-white dark:bg-gray-900 p-4 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm">
+                                <h5 class="font-bold text-gray-900 dark:text-white mb-1">Takoyaki (6pcs)</h5>
+                                <p class="text-xs text-gray-400 dark:text-gray-500 italic mb-2">Six octopus balls topped with bonito flakes, mayo, and sweet sauce.</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400"><span class="font-bold text-gray-700 dark:text-gray-300">380 kcal</span> | P:14g C:40g F:18g</p>
+                            </div>
+                        </div>
                     </div>
                 `;
                 return;
