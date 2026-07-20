@@ -317,7 +317,7 @@
                 
                 <div class="bg-white dark:bg-gray-900 rounded-3xl p-1 shadow-sm border border-gray-100 dark:border-gray-800 transition-colors duration-300">
                     <input type="text" id="foodName" placeholder="Food Name (Optional)" class="w-full p-4 bg-transparent outline-none font-medium border-b border-gray-50 dark:border-gray-800 text-gray-900 dark:text-white">
-                    <textarea id="foodDesc" placeholder="Any specific ingredients or portion size? (Optional)" class="w-full p-4 bg-transparent outline-none text-sm text-gray-600 dark:text-gray-400 h-20 resize-none"></textarea>
+                    <textarea id="foodDesc" placeholder="Any specific ingredients or portion size? (Optional - more info improves accuracy!)" class="w-full p-4 bg-transparent outline-none text-sm text-gray-600 dark:text-gray-400 h-20 resize-none"></textarea>
                 </div>
                 
                 <button id="analyzeBtn" class="w-full bg-blue-600 text-white font-bold py-4 rounded-2xl shadow-lg shadow-blue-200 dark:shadow-none transition-all active:scale-95 disabled:bg-blue-300 dark:disabled:bg-blue-800 disabled:shadow-none flex justify-center items-center gap-2">
@@ -1760,6 +1760,10 @@
             modal.classList.remove('show');
             setTimeout(() => { modal.classList.add('hidden'); modal.classList.remove('flex'); }, 200); 
         };
+
+        document.getElementById('friendFoodsModal').addEventListener('click', (e) => {
+            if (e.target.id === 'friendFoodsModal') window.closeFriendModal();
+        });
 
         window.openSageChat = () => {
             window.showToast("Sage chat coming soon!", "info");
