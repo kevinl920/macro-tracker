@@ -58,6 +58,94 @@
             .goal-slider::-webkit-slider-thumb { border-color: #374151; background: #1f2937; }
             .goal-slider::-moz-range-thumb { border-color: #374151; background: #1f2937; }
         }
+
+        .sage-mini-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background-color: #e0f2fe; /* Light blue background */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid #bae6fd;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .sage-mini-btn:active {
+            transform: scale(0.95);
+        }
+        .dark .sage-mini-btn {
+            background-color: #0c4a6e;
+            border-color: #075985;
+        }
+
+        .sage-mini {
+            position: relative;
+            width: 20px;
+            height: 14px;
+        }
+        /* Shell */
+        .sage-mini-shell {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 14px;
+            height: 10px;
+            background-color: #8c423f;
+            border: 1px solid #5a2624;
+            border-radius: 8px 10px 4px 6px;
+            z-index: 3;
+        }
+        /* Head */
+        .sage-mini-head {
+            position: absolute;
+            top: 5px;
+            right: 0;
+            width: 8px;
+            height: 6px;
+            background-color: #a3c065;
+            border: 1px solid #7a9350;
+            border-radius: 4px 5px 5px 4px;
+            z-index: 2;
+        }
+        /* Eye */
+        .sage-mini-head::after {
+            content: '';
+            position: absolute;
+            top: 1.5px;
+            right: 2px;
+            width: 1.5px;
+            height: 1.5px;
+            background-color: #111;
+            border-radius: 50%;
+        }
+        /* Front Flipper */
+        .sage-mini-flipper {
+            position: absolute;
+            bottom: -2px;
+            right: 6px;
+            width: 4px;
+            height: 6px;
+            background-color: #a3c065;
+            border: 1px solid #7a9350;
+            border-radius: 2px 2px 4px 4px;
+            transform: rotate(-15deg);
+            z-index: 4;
+        }
+        /* Back Flipper */
+        .sage-mini-flipper-back {
+            position: absolute;
+            bottom: -1px;
+            left: 3px;
+            width: 3.5px;
+            height: 5px;
+            background-color: #8fa857;
+            border: 1px solid #6b8243;
+            border-radius: 2px 2px 4px 4px;
+            transform: rotate(10deg);
+            z-index: 1;
+        }
     </style>
 </head>
 
@@ -177,7 +265,20 @@
     <!-- Header -->
     <header class="fixed top-0 w-full bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg border-b border-gray-200 dark:border-gray-800 px-6 pb-3 z-50 flex justify-between items-center transition-colors duration-300" style="padding-top: max(env(safe-area-inset-top), 1rem);">
         <h1 class="text-xl font-bold text-gray-900 dark:text-white tracking-tight" id="headerTitle">Log Food</h1>
-        <div class="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-blue-600 dark:text-blue-300 font-bold text-xs uppercase cursor-pointer" id="userAvatar" onclick="document.querySelector('[data-target=\'tab-settings\']').click()">U</div>
+        
+        <div class="flex items-center gap-3">
+            <!-- Sage Avatar Button -->
+            <button onclick="openSageChat()" class="sage-mini-btn" aria-label="Ask Sage">
+                <div class="sage-mini">
+                    <div class="sage-mini-flipper-back"></div>
+                    <div class="sage-mini-shell"></div>
+                    <div class="sage-mini-head"></div>
+                    <div class="sage-mini-flipper"></div>
+                </div>
+            </button>
+            
+            <div class="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-blue-600 dark:text-blue-300 font-bold text-xs uppercase cursor-pointer" id="userAvatar" onclick="document.querySelector('[data-target=\'tab-settings\']').click()">U</div>
+        </div>
     </header>
 
     <!-- Main Content Area -->
@@ -1602,6 +1703,10 @@
             const modal = document.getElementById('friendFoodsModal');
             modal.classList.remove('show');
             setTimeout(() => { modal.classList.add('hidden'); modal.classList.remove('flex'); }, 200); 
+        };
+
+        window.openSageChat = () => {
+            window.showToast("Sage chat coming soon!", "info");
         };
 
         // Initialize UI Elements
