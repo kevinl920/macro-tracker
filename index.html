@@ -1740,7 +1740,7 @@
             } else {
                 list.innerHTML = foods.map(f => `
                     <div class="bg-gray-50 dark:bg-gray-800 p-3 rounded-2xl flex justify-between items-center border border-gray-100 dark:border-gray-700">
-                        <div class="flex-1 pr-3">
+                        <div class="flex-1 min-w-0 pr-3">
                             <h4 class="font-bold text-sm text-gray-900 dark:text-white leading-tight mb-1 truncate">${f.foodName}</h4>
                             <p class="text-[10px] text-gray-500 font-medium flex gap-2"><span>P:${Math.round(f.protein)}</span><span>C:${Math.round(f.carbs)}</span><span>F:${Math.round(f.fat)}</span></p>
                         </div>
