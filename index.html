@@ -40,6 +40,10 @@
         #nutritionModal.show { opacity: 1; }
         #nutritionModal.show #nutritionCard { transform: scale(1); }
 
+        /* STREAMING_CHUNK: Friend Modal Animations */
+        #friendFoodsModal.show { opacity: 1; }
+        #friendFoodsModal.show #friendFoodsCard { transform: scale(1); }
+        
         /* Custom Goal Slider Thumb */
         .goal-slider::-webkit-slider-thumb {
             -webkit-appearance: none; appearance: none; width: 24px; height: 24px;
@@ -137,6 +141,18 @@
                 <span class="font-bold" id="nfProteinPct">0%</span>
             </div>
             <p class="text-[9px] text-gray-500 dark:text-gray-400 leading-tight mt-2">* The % Daily Goal tells you how much a nutrient in this serving contributes to your personal daily macro targets.</p>
+        </div>
+    </div>
+
+        <!-- STREAMING_CHUNK: Friend's Daily Foods Modal -->
+    <div id="friendFoodsModal" class="fixed inset-0 bg-black/70 z-[250] hidden flex-col items-center justify-center p-4 backdrop-blur-sm opacity-0 transition-opacity duration-200">
+        <div class="bg-white dark:bg-gray-900 text-black dark:text-white p-5 w-full max-w-sm rounded-3xl shadow-2xl relative border border-gray-200 dark:border-gray-800 font-sans scale-95 transition-transform duration-200 flex flex-col max-h-[80vh]" id="friendFoodsCard">
+            <button onclick="closeFriendModal()" class="absolute -top-4 -right-4 w-10 h-10 bg-gray-200 dark:bg-gray-800 border-2 border-white dark:border-gray-900 rounded-full flex items-center justify-center text-gray-800 dark:text-gray-200 shadow-lg active:scale-90 transition-transform"><i class="ph ph-x font-bold text-lg"></i></button>
+            <h1 class="text-2xl font-black mb-1 tracking-tighter" id="ffName">@username's Log</h1>
+            <p class="text-xs text-gray-500 mb-4">Foods eaten today</p>
+            <div id="ffList" class="flex-1 overflow-y-auto space-y-3 pr-2 hide-scrollbar">
+                <!-- Injected via JS -->
+            </div>
         </div>
     </div>
     
@@ -261,6 +277,49 @@
             </div>
         </div>
 
+        <!-- STREAMING_CHUNK: TAB 3.5 SOCIAL FEED -->
+        <!-- ==================== TAB 3.5: SOCIAL ==================== -->
+        <div id="tab-social" class="tab-content">
+            <div class="p-4 space-y-6">
+                
+                <!-- Privacy Notice -->
+                <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-3xl border border-blue-100 dark:border-blue-900/50">
+                    <div class="flex gap-3 items-center mb-2">
+                        <i class="ph-fill ph-info text-blue-500 text-xl"></i>
+                        <h3 class="font-bold text-blue-900 dark:text-blue-100">Privacy Notice</h3>
+                    </div>
+                    <p class="text-xs text-blue-700 dark:text-blue-300">By accepting a friend request, your <b>daily calorie goals</b> and <b>foods eaten today</b> will be shared with them. They will not see past days or weight data.</p>
+                </div>
+
+                <!-- Add Friend Input -->
+                <div class="bg-white dark:bg-gray-900 p-4 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800">
+                    <h3 class="font-bold text-gray-900 dark:text-white mb-3">Add Friend</h3>
+                    <div class="flex gap-2">
+                        <div class="relative flex-1">
+                            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold">@</span>
+                            <input type="text" id="friendSearchInput" placeholder="username" class="w-full p-3 pl-8 bg-gray-50 dark:bg-gray-800 rounded-xl outline-none text-gray-900 dark:text-white border border-transparent focus:border-blue-500 lowercase">
+                        </div>
+                        <button onclick="sendFriendRequest()" id="addFriendBtn" class="bg-blue-600 text-white px-4 rounded-xl font-bold active:scale-95 transition-transform"><i class="ph-bold ph-user-plus"></i></button>
+                    </div>
+                </div>
+                
+                <!-- Pending Requests -->
+                <div id="pendingRequestsContainer" class="hidden">
+                    <h3 class="font-bold text-gray-900 dark:text-white mb-3 text-sm uppercase tracking-wider text-gray-500">Pending Requests</h3>
+                    <div id="pendingRequestsList" class="space-y-2"></div>
+                </div>
+
+                <!-- Global Feed -->
+                <div>
+                    <h3 class="font-bold text-gray-900 dark:text-white mb-3 text-sm uppercase tracking-wider text-gray-500">Friends Feed</h3>
+                    <div id="friendsFeedList" class="space-y-3">
+                        <div class="text-center text-sm text-gray-400 py-4">Log in to view your friends feed.</div>
+                    </div>
+                </div>
+                
+            </div>
+        </div>
+    
         <!-- ==================== TAB 4: SETTINGS ==================== -->
         <div id="tab-settings" class="tab-content">
             <div class="p-4 space-y-6 pb-8">
@@ -368,6 +427,10 @@
             <button class="nav-item flex items-center justify-center w-16 h-12 text-gray-400 dark:text-gray-500 transition-colors" data-target="tab-history">
                 <i class="ph-fill ph-clock-counter-clockwise text-2xl pointer-events-none"></i>
             </button>
+            <!-- STREAMING_CHUNK: Injecting Social Icon into Bottom Nav -->
+            <button class="nav-item flex items-center justify-center w-16 h-12 text-gray-400 dark:text-gray-500 transition-colors" data-target="tab-social">
+                <i class="ph-fill ph-users text-2xl pointer-events-none"></i>
+            </button>
             <button class="nav-item flex items-center justify-center w-16 h-12 text-gray-400 dark:text-gray-500 transition-colors" data-target="tab-settings">
                 <i class="ph-fill ph-gear text-2xl pointer-events-none"></i>
             </button>
@@ -442,6 +505,8 @@
                             
                             // NEW Phase 2: Sync Foods from Cloud!
                             await window.syncCloudFoods(user.uid);
+                            // NEW Phase 3: Push local goals to cloud for friends to see
+                            window.syncProfileToCloud();
                         }
                     } catch(e) {
                         console.error("Profile check failed:", e);
@@ -500,6 +565,15 @@
                 console.error("Error syncing foods:", err);
                 window.showToast("Failed to sync with cloud", "error");
             }
+        };
+
+        w// STREAMING_CHUNK: Phase 3 Cloud Profile Sync
+        window.syncProfileToCloud = async () => {
+            if (!FIREBASE_ENABLED || !currentUser) return;
+            try {
+                const profileRef = window.db.collection('artifacts').doc(appId).collection('users').doc(currentUser.uid).collection('profile').doc('main');
+                await profileRef.set({ goals: userGoals }, { merge: true });
+            } catch(e) { console.error("Profile sync failed", e); }
         };
 
         window.signInWithGoogle = () => {
@@ -620,10 +694,11 @@
                 document.getElementById(targetId).classList.add('active');
                 window.scrollTo(0, 0);
 
-                const titles = { 'tab-log': 'Log Food', 'tab-dash': 'Dashboard', 'tab-history': 'History', 'tab-settings': 'Settings' };
+                const titles = { 'tab-log': 'Log Food', 'tab-dash': 'Dashboard', 'tab-history': 'History', 'tab-social': 'Friends Feed', 'tab-settings': 'Settings' };
                 document.getElementById('headerTitle').innerText = titles[targetId];
                 
                 if(targetId === 'tab-dash') updateDashboardUI();
+                if(targetId === 'tab-social') loadSocialData();
                 if(targetId === 'tab-settings') initSliderVals(); 
             });
         });
@@ -714,6 +789,7 @@
             userGoals.displayName = name;
             localStorage.setItem('mt_userGoals', JSON.stringify(userGoals));
             updateGoalsUI();
+            window.syncProfileToCloud(); // Phase 3 trigger
             showToast("Name saved! It will attach to new logs.", "success");
         };
 
@@ -858,6 +934,7 @@
             localStorage.setItem('mt_userGoals', JSON.stringify(userGoals));
             updateGoalsUI();
             updateDashboardUI();
+            window.syncProfileToCloud(); // Phase 3 trigger
             showToast("Custom goals saved locally!", "success");
         };
 
@@ -883,6 +960,7 @@
             updateGoalsUI();
             updateDashboardUI();
             initSliderVals(); 
+            window.syncProfileToCloud(); // Phase 3 trigger
             showToast("Goals updated from Apple Health data!", "success");
         };
 
@@ -1363,6 +1441,206 @@
                 list.appendChild(card);
             });
         }
+
+        // STREAMING_CHUNK: Phase 3 Social Logic & API
+        
+        let friendsUnsubscribe = null;
+        
+        window.loadSocialData = () => {
+            if(!FIREBASE_ENABLED || !currentUser) {
+                document.getElementById('friendsFeedList').innerHTML = '<div class="text-center text-sm text-gray-500 py-4">Please log in to see friends.</div>';
+                return;
+            }
+            
+            if(friendsUnsubscribe) friendsUnsubscribe();
+            
+            // Listen for friend updates in real-time
+            friendsUnsubscribe = window.db.collection('artifacts').doc(appId).collection('users').doc(currentUser.uid).collection('friends').onSnapshot(async (snapshot) => {
+                const pending = [];
+                const accepted = [];
+                
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    if (data.status === 'pending') pending.push(data);
+                    if (data.status === 'accepted') accepted.push(data);
+                });
+                
+                renderPendingRequests(pending);
+                await renderFriendsFeed(accepted);
+            });
+        };
+
+        window.sendFriendRequest = async () => {
+            if(!currentUser) return window.showToast("Log in first!", "error");
+            const input = document.getElementById('friendSearchInput');
+            const username = input.value.trim().toLowerCase();
+            const btn = document.getElementById('addFriendBtn');
+            
+            if(!username || username === window.userGoals.displayName?.toLowerCase()) return;
+            
+            btn.innerHTML = '<i class="ph-bold ph-spinner animate-spin"></i>';
+            try {
+                // Find user by their username
+                const unRef = window.db.collection('artifacts').doc(appId).collection('public').doc('data').collection('usernames').doc(username);
+                const unDoc = await unRef.get();
+                if(!unDoc.exists) throw new Error("User not found");
+                
+                const friendUid = unDoc.data().uid;
+                
+                // Write the two-way relationship
+                const myRef = window.db.collection('artifacts').doc(appId).collection('users').doc(currentUser.uid).collection('friends').doc(friendUid);
+                const theirRef = window.db.collection('artifacts').doc(appId).collection('users').doc(friendUid).collection('friends').doc(currentUser.uid);
+                
+                await myRef.set({ status: 'sent', username: username, uid: friendUid });
+                await theirRef.set({ status: 'pending', username: window.userGoals.displayName, uid: currentUser.uid });
+                
+                window.showToast("Request sent!", "success");
+                input.value = "";
+            } catch(e) { 
+                window.showToast(e.message, "error"); 
+            }
+            btn.innerHTML = '<i class="ph-bold ph-user-plus"></i>';
+        };
+
+        window.acceptFriend = async (friendUid, friendUsername) => {
+            try {
+                const myRef = window.db.collection('artifacts').doc(appId).collection('users').doc(currentUser.uid).collection('friends').doc(friendUid);
+                const theirRef = window.db.collection('artifacts').doc(appId).collection('users').doc(friendUid).collection('friends').doc(currentUser.uid);
+                
+                await myRef.update({ status: 'accepted' });
+                await theirRef.update({ status: 'accepted' });
+                window.showToast("Friend added!", "success");
+            } catch (err) { window.showToast("Error accepting", "error"); }
+        };
+
+        window.declineFriend = async (friendUid) => {
+            try {
+                const myRef = window.db.collection('artifacts').doc(appId).collection('users').doc(currentUser.uid).collection('friends').doc(friendUid);
+                const theirRef = window.db.collection('artifacts').doc(appId).collection('users').doc(friendUid).collection('friends').doc(currentUser.uid);
+                
+                await myRef.delete();
+                await theirRef.delete();
+            } catch (err) { }
+        };
+
+        function renderPendingRequests(requests) {
+            const container = document.getElementById('pendingRequestsContainer');
+            const list = document.getElementById('pendingRequestsList');
+            
+            if (requests.length === 0) {
+                container.classList.add('hidden');
+                return;
+            }
+            
+            container.classList.remove('hidden');
+            list.innerHTML = requests.map(req => `
+                <div class="bg-gray-50 dark:bg-gray-800 p-3 rounded-2xl flex justify-between items-center border border-gray-100 dark:border-gray-700">
+                    <div class="flex items-center gap-2">
+                        <div class="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300 font-bold flex items-center justify-center text-xs uppercase">${req.username.charAt(0)}</div>
+                        <span class="font-bold text-sm text-gray-900 dark:text-white">@${req.username}</span>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="declineFriend('${req.uid}')" class="w-8 h-8 rounded-full bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 flex items-center justify-center active:scale-90 transition-transform"><i class="ph-bold ph-x"></i></button>
+                        <button onclick="acceptFriend('${req.uid}', '${req.username}')" class="w-8 h-8 rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400 flex items-center justify-center active:scale-90 transition-transform"><i class="ph-bold ph-check"></i></button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function renderFriendsFeed(friends) {
+            const list = document.getElementById('friendsFeedList');
+            if(friends.length === 0) return list.innerHTML = '<div class="text-center text-sm text-gray-400 py-4">Search a username to add friends!</div>';
+            
+            let feedHTML = '';
+            const todayStr = new Date().toDateString();
+            
+            for(const friend of friends) {
+                try {
+                    // 1. Fetch friend's profile for their calorie goal
+                    const profileDoc = await window.db.collection('artifacts').doc(appId).collection('users').doc(friend.uid).collection('profile').doc('main').get();
+                    const friendGoals = profileDoc.data()?.goals || { cals: 2000 };
+                    
+                    // 2. Fetch friend's foods for TODAY only
+                    const foodsSnap = await window.db.collection('artifacts').doc(appId).collection('users').doc(friend.uid).collection('foods').get();
+                    
+                    let todayCals = 0;
+                    const todayFoods = [];
+                    
+                    foodsSnap.forEach(fDoc => {
+                        const f = fDoc.data();
+                        if(f.dateLogged && new Date(f.dateLogged).toDateString() === todayStr) {
+                            todayCals += (f.calories || 0);
+                            todayFoods.push(f);
+                        }
+                    });
+                    
+                    // Store today's foods in global memory so the modal can pop them up instantly without reloading
+                    window[`ffoods_${friend.uid}`] = todayFoods.sort((a,b) => new Date(b.dateLogged) - new Date(a.dateLogged));
+                    
+                    // 3. Build UI
+                    const pct = Math.min(100, (todayCals / friendGoals.cals) * 100);
+                    const barColor = pct > 100 ? 'bg-red-500' : 'bg-blue-500';
+                    
+                    feedHTML += `
+                        <div class="bg-white dark:bg-gray-900 p-3 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 flex items-center gap-4 cursor-pointer active:scale-[0.98] transition-transform" onclick="openFriendModal('${friend.uid}', '${friend.username}')">
+                            <!-- Avatar -->
+                            <div class="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center font-bold text-gray-600 dark:text-gray-300 shrink-0 uppercase">${friend.username.charAt(0)}</div>
+                            
+                            <!-- Middle: Username & Progress Bar -->
+                            <div class="flex-1 min-w-0">
+                                <h4 class="font-bold text-gray-900 dark:text-white truncate text-sm mb-1">@${friend.username}</h4>
+                                <div class="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-1.5">
+                                    <div class="${barColor} h-full rounded-full transition-all duration-500" style="width: ${pct}%"></div>
+                                </div>
+                            </div>
+                            
+                            <!-- Right: Cals / Goal -->
+                            <div class="shrink-0 text-right w-16">
+                                <div class="font-black text-gray-900 dark:text-white leading-tight">${Math.round(todayCals)}</div>
+                                <div class="text-[9px] text-gray-400 font-bold uppercase">/ ${friendGoals.cals}</div>
+                            </div>
+                        </div>
+                    `;
+                } catch(err) { console.error("Error loading friend feed", err); }
+            }
+            
+            list.innerHTML = feedHTML || '<div class="text-center text-sm text-gray-400 py-4">No data available.</div>';
+        }
+
+        window.openFriendModal = (uid, username) => {
+            document.getElementById('ffName').innerText = `@${username}'s Log`;
+            const list = document.getElementById('ffList');
+            const foods = window[`ffoods_${uid}`] || [];
+            
+            if(foods.length === 0) {
+                list.innerHTML = `
+                    <div class="text-center py-8">
+                        <i class="ph-fill ph-empty text-4xl text-gray-300 dark:text-gray-700 mb-2"></i>
+                        <p class="text-sm text-gray-500">No foods logged today.</p>
+                    </div>`;
+            } else {
+                list.innerHTML = foods.map(f => `
+                    <div class="bg-gray-50 dark:bg-gray-800 p-3 rounded-2xl flex justify-between items-center border border-gray-100 dark:border-gray-700">
+                        <div class="flex-1 pr-3">
+                            <h4 class="font-bold text-sm text-gray-900 dark:text-white leading-tight mb-1 truncate">${f.foodName}</h4>
+                            <p class="text-[10px] text-gray-500 font-medium flex gap-2"><span>P:${Math.round(f.protein)}</span><span>C:${Math.round(f.carbs)}</span><span>F:${Math.round(f.fat)}</span></p>
+                        </div>
+                        <div class="font-black text-gray-900 dark:text-white text-sm shrink-0 bg-white dark:bg-gray-900 px-2 py-1 rounded-lg border border-gray-200 dark:border-gray-800">${Math.round(f.calories)} kcal</div>
+                    </div>
+                `).join('');
+            }
+            
+            const modal = document.getElementById('friendFoodsModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            setTimeout(() => modal.classList.add('show'), 10);
+        };
+        
+        window.closeFriendModal = () => {
+            const modal = document.getElementById('friendFoodsModal');
+            modal.classList.remove('show');
+            setTimeout(() => { modal.classList.add('hidden'); modal.classList.remove('flex'); }, 200); 
+        };
 
         // Initialize UI
         updateGoalsUI();
