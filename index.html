@@ -332,7 +332,7 @@
         </div>
     </header>
 
-    <div id="sageChatOverlay" class="fixed inset-0 z-[400] bg-gray-50 dark:bg-gray-950 flex flex-col transform translate-y-full transition-transform duration-300">
+    <div id="sageChatOverlay" class="fixed top-0 left-0 w-full h-[100dvh] z-[400] bg-gray-50 dark:bg-gray-950 flex flex-col transform translate-y-full transition-transform duration-300">
         <!-- Header -->
         <div class="bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-900/40 dark:to-emerald-800/40 p-4 border-b border-emerald-200 dark:border-emerald-800 flex items-center justify-between shadow-sm transition-colors" style="padding-top: max(env(safe-area-inset-top), 1rem);">
             <div class="flex items-center gap-3">
@@ -1875,10 +1875,18 @@
             const overlay = document.getElementById('sageChatOverlay');
             overlay.classList.remove('translate-y-full');
             overlay.classList.add('translate-y-0');
+            
+            // Lock body scroll to prevent iOS from aggressively pushing the background page
+            document.body.style.overflow = 'hidden';
+            
             // Give input focus after animation completes
             setTimeout(() => {
                 const input = document.getElementById('sageChatInput');
-                if (input) input.focus();
+                if (input) {
+                    input.focus();
+                    // iOS Safari fallback: snap the window back down if the keyboard shoved it up
+                    setTimeout(() => window.scrollTo(0, 0), 100);
+                }
             }, 300);
         };
         
@@ -1886,6 +1894,10 @@
             const overlay = document.getElementById('sageChatOverlay');
             overlay.classList.remove('translate-y-0');
             overlay.classList.add('translate-y-full');
+            
+            // Unlock body scroll
+            document.body.style.overflow = '';
+            
             document.getElementById('sageChatInput').blur(); // Close keyboard
         };
 
