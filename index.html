@@ -467,6 +467,14 @@
             window.auth = firebase.auth();
             window.db = firebase.firestore();
 
+            // Catch the return trip from Google Sign-In redirect explicitly before anything else
+            window.auth.getRedirectResult().catch(error => {
+                console.error("Redirect Error:", error);
+                window.showToast("Login interrupted. Please try again.", "error");
+                const btn = document.querySelector('button[onclick="signInWithGoogle()"]');
+                if (btn) btn.innerHTML = '<i class="ph-fill ph-google-logo text-xl"></i> Continue with Google';
+            });
+
             window.auth.onAuthStateChanged(async user => {
                 const overlay = document.getElementById('authOverlay');
                 const usernameModal = document.getElementById('usernameModal');
@@ -558,8 +566,16 @@
         window.signInWithGoogle = () => {
             if (!FIREBASE_ENABLED) return;
             sessionStorage.removeItem('guestMode'); 
+            
+            // Set button to loading state immediately to prevent multi-clicks
+            const btn = document.querySelector('button[onclick="signInWithGoogle()"]');
+            if (btn) btn.innerHTML = '<i class="ph ph-spinner animate-spin text-xl"></i> Connecting...';
+            
             const provider = new firebase.auth.GoogleAuthProvider();
-            window.auth.signInWithRedirect(provider).catch(error => showToast(error.message, "error"));
+            window.auth.signInWithRedirect(provider).catch(error => {
+                window.showToast(error.message, "error");
+                if (btn) btn.innerHTML = '<i class="ph-fill ph-google-logo text-xl"></i> Continue with Google';
+            });
         };
 
         window.signOut = () => {
