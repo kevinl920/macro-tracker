@@ -1221,10 +1221,17 @@
         window.updateGoalSlider = (e) => {
             let val = parseInt(e.target.value);
             
-            // Tiny magnetic snap exactly at 0 so users can easily find "Maintain Weight"
-            if (Math.abs(val) < 15) {
-                val = 0;
-                e.target.value = 0;
+            // Magnetic snap exactly at 250 increments (e.g. 0, 250, 500)
+            // This snaps to common targets, while STILL allowing custom numbers like 700!
+            const snapPoints = [-750, -500, -250, 0, 250, 500, 750];
+            const snapStrength = 20; // Snaps only if you drag within 20 kcal of the target
+            
+            for (let snap of snapPoints) {
+                if (Math.abs(val - snap) <= snapStrength) {
+                    val = snap;
+                    e.target.value = snap; // Force the visual thumb into position
+                    break;
+                }
             }
 
             const modeText = document.getElementById('goalModeText');
@@ -1306,7 +1313,7 @@
                 f = Math.round((targetCals * 0.30) / 9);
                 c = Math.round((targetCals - (p * 4) - (f * 9)) / 4);
                 
-                userGoals.cals = targetCals;
+                window.userGoals.cals = targetCals;
             } else {
                 // Apple Health Mode
                 const resting = parseFloat(document.getElementById('calcResting').value);
@@ -1324,20 +1331,28 @@
                 c = Math.round((targetCals * 0.40) / 4);
                 f = Math.round((targetCals * 0.30) / 9);
 
-                userGoals.cals = targetCals;
+                window.userGoals.cals = targetCals;
             }
 
             // Fallback safety to prevent negative macros
-            userGoals.protein = p > 0 ? p : 0;
-            userGoals.carbs = c > 0 ? c : 0;
-            userGoals.fat = f > 0 ? f : 0;
+            window.userGoals.protein = p > 0 ? p : 0;
+            window.userGoals.carbs = c > 0 ? c : 0;
+            window.userGoals.fat = f > 0 ? f : 0;
 
-            localStorage.setItem('mt_userGoals', JSON.stringify(userGoals));
-            updateGoalsUI();
-            updateDashboardUI();
+            // CRITICAL BUG FIX: Force the background manual sliders to visually match the new calculation,
+            // so they stop overwriting the Apple Health data with their default 30/40/30 splits!
+            if (window.userGoals.cals > 0) {
+                window.sliderVal1 = Math.round((window.userGoals.protein * 4) / window.userGoals.cals * 100);
+                window.sliderVal2 = window.sliderVal1 + Math.round((window.userGoals.carbs * 4) / window.userGoals.cals * 100);
+            }
+
+            localStorage.setItem('mt_userGoals', JSON.stringify(window.userGoals));
             
-            // CRITICAL FIX: Removed initSliderVals() from here. It was reading the old manual 
-            // slider percentages and instantly overwriting the exact macros we just calculated!
+            if(typeof updateGoalsUI === 'function') updateGoalsUI();
+            if(typeof updateDashboardUI === 'function') updateDashboardUI();
+            
+            // Now it is safe to call this, because we synced the slider percentages above!
+            if(typeof initSliderVals === 'function') initSliderVals(); 
             
             if(window.syncProfileToCloud) window.syncProfileToCloud(); // Phase 3 trigger
             
