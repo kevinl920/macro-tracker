@@ -1280,6 +1280,7 @@
             const offset = parseInt(document.getElementById('calcGoalSlider').value) || 0;
             let baseTDEE = 0;
             let p = 0, c = 0, f = 0;
+            let targetCals = 0;
 
             if (window.currentCalcMode === 'basic') {
                 const age = parseInt(document.getElementById('calcAge').value);
@@ -1289,7 +1290,7 @@
                 const activity = parseFloat(document.getElementById('calcActivity').value);
 
                 if (!age || !weightLbs || !heightIn) {
-                    return window.showToast ? window.showToast("Please fill in age, weight, and height.", "error") : alert("Missing data");
+                    return showToast("Please fill in age, weight, and height.", "error");
                 }
 
                 // Mifflin-St Jeor Equation
@@ -1299,74 +1300,99 @@
                 bmr += (gender === 'M') ? 5 : -161;
 
                 baseTDEE = bmr * activity;
-                const targetCals = Math.round(baseTDEE + offset);
+                targetCals = Math.round(baseTDEE + offset);
                 
                 // Weight is known: 1g protein/lb, 30% fat, rest carbs
                 p = Math.round(weightLbs * 1.0);
                 f = Math.round((targetCals * 0.30) / 9);
                 c = Math.round((targetCals - (p * 4) - (f * 9)) / 4);
-                
-                userGoals.cals = targetCals;
             } else {
                 // Apple Health Mode
                 const resting = parseFloat(document.getElementById('calcResting').value);
                 const active = parseFloat(document.getElementById('calcActive').value);
 
                 if (!resting || !active) {
-                    return window.showToast ? window.showToast("Please enter Resting and Active energy.", "error") : alert("Missing data");
+                    return showToast("Please enter Resting and Active energy.", "error");
                 }
 
                 baseTDEE = resting + active;
-                const targetCals = Math.round(baseTDEE + offset);
+                targetCals = Math.round(baseTDEE + offset);
 
                 // Weight unknown: Standard 30% P / 40% C / 30% F split
                 p = Math.round((targetCals * 0.30) / 4);
                 c = Math.round((targetCals * 0.40) / 4);
                 f = Math.round((targetCals * 0.30) / 9);
-
-                userGoals.cals = targetCals;
             }
 
             // 1. Math check to force exactly 100% for the sliders
-            let p_pct = Math.round((p * 4) / userGoals.cals * 100);
-            let c_pct = Math.round((c * 4) / userGoals.cals * 100);
+            let p_pct = Math.round((p * 4) / targetCals * 100);
+            let c_pct = Math.round((c * 4) / targetCals * 100);
             let f_pct = 100 - p_pct - c_pct; // Guarantees the total is exactly 100%
 
             // 2. Set the exact grams based on the perfect percentages so all widgets match!
-            userGoals.protein = Math.round((userGoals.cals * (p_pct / 100)) / 4);
-            userGoals.carbs = Math.round((userGoals.cals * (c_pct / 100)) / 4);
-            userGoals.fat = Math.round((userGoals.cals * (f_pct / 100)) / 9);
+            let final_p = Math.round((targetCals * (p_pct / 100)) / 4);
+            let final_c = Math.round((targetCals * (c_pct / 100)) / 4);
+            let final_f = Math.round((targetCals * (f_pct / 100)) / 9);
 
-            // 3. Sync to the global slider variables used by the rest of your app
-            sliderVal1 = p_pct;
-            sliderVal2 = p_pct + c_pct;
+            // 3. BULLETPROOF MEMORY UPDATE: Set both local and global objects so no widget gets left behind
+            if (typeof userGoals !== 'undefined') {
+                userGoals.cals = targetCals;
+                userGoals.protein = final_p;
+                userGoals.carbs = final_c;
+                userGoals.fat = final_f;
+            }
+            window.userGoals = window.userGoals || {};
+            window.userGoals.cals = targetCals;
+            window.userGoals.protein = final_p;
+            window.userGoals.carbs = final_c;
+            window.userGoals.fat = final_f;
 
-            // 4. STRICT DOM UPDATE: Only look for the exact Manual Adjustment ID, never generic inputs!
+            // 4. Update the Manual Adjustment physical DOM elements
             const manualCalsInput = document.getElementById('setGoalCals') || 
                                     document.getElementById('goalCals') || 
-                                    document.getElementById('setCalories');
+                                    document.querySelector('#tab-settings input[type="number"]');
                                     
             if (manualCalsInput) {
-                manualCalsInput.value = userGoals.cals;
+                manualCalsInput.value = targetCals;
+                // Dispatch input event to ensure native event listeners see the change
+                manualCalsInput.dispatchEvent(new Event('input', { bubbles: true }));
             }
 
             const s1 = document.getElementById('slider1');
             const s2 = document.getElementById('slider2');
-            if (s1) s1.value = sliderVal1;
-            if (s2) s2.value = sliderVal2;
+            if (s1 && s2) {
+                s1.value = p_pct;
+                s2.value = p_pct + c_pct;
+                // CRITICAL: Fire events so native slider scripts update the text visually to 100%
+                s1.dispatchEvent(new Event('input', { bubbles: true }));
+                s2.dispatchEvent(new Event('input', { bubbles: true }));
+            }
 
             // 5. Save everything securely to local storage
-            localStorage.setItem('mt_userGoals', JSON.stringify(userGoals));
+            localStorage.setItem('mt_userGoals', JSON.stringify(window.userGoals));
             
-            // 6. NOW it is safe to trigger the UI updates because the DOM and Memory are in perfect harmony
-            if (typeof initSliderVals === 'function') initSliderVals(); // Redraws the slider tracks and percentages
-            if (typeof updateGoalsUI === 'function') updateGoalsUI(); // Updates the top widget
-            if (typeof updateDashboardUI === 'function') updateDashboardUI(); // Updates the dashboard rings
-            if (typeof syncProfileToCloud === 'function') syncProfileToCloud(); // Pushes to friends feed
+            // 6. Force native UI Updates across the board
+            if (typeof updateGoalsUI === 'function') updateGoalsUI();
+            if (typeof updateDashboardUI === 'function') updateDashboardUI();
+            if (typeof initSliderVals === 'function') initSliderVals();
             
-            if (window.showToast) {
-                window.showToast(`Goals updated via ${window.currentCalcMode === 'basic' ? 'Basic Calculator' : 'Apple Health'}!`, "success");
-            }
+            // 7. DIRECT DOM OVERRIDE: Force the Current Daily Goals widget to update its text manually
+            const setText = (id, text) => { const el = document.getElementById(id); if (el) el.innerText = text; };
+            
+            // Checking the most common IDs for the Daily Goals Widget
+            setText('goalCalsDisplay', targetCals);
+            setText('goalProteinDisplay', final_p + 'g');
+            setText('goalCarbsDisplay', final_c + 'g');
+            setText('goalFatDisplay', final_f + 'g');
+            
+            setText('goalCals', targetCals);
+            setText('goalProtein', final_p + 'g');
+            setText('goalCarbs', final_c + 'g');
+            setText('goalFat', final_f + 'g');
+
+            if (typeof syncProfileToCloud === 'function') syncProfileToCloud(); 
+            
+            showToast(`Goals updated via ${window.currentCalcMode === 'basic' ? 'Basic Calculator' : 'Apple Health'}!`, "success");
         };
 
         document.getElementById('imagePreview').onclick = () => document.getElementById('imageInput').click();
