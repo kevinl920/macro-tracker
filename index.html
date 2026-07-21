@@ -1221,17 +1221,10 @@
         window.updateGoalSlider = (e) => {
             let val = parseInt(e.target.value);
             
-            // Magnetic snap exactly at 250 increments (e.g. 0, 250, 500)
-            // This snaps to common targets, while STILL allowing custom numbers like 700!
-            const snapPoints = [-750, -500, -250, 0, 250, 500, 750];
-            const snapStrength = 20; // Snaps only if you drag within 20 kcal of the target
-            
-            for (let snap of snapPoints) {
-                if (Math.abs(val - snap) <= snapStrength) {
-                    val = snap;
-                    e.target.value = snap; // Force the visual thumb into position
-                    break;
-                }
+            // Tiny magnetic snap exactly at 0 so users can easily find "Maintain Weight"
+            if (Math.abs(val) < 15) {
+                val = 0;
+                e.target.value = 0;
             }
 
             const modeText = document.getElementById('goalModeText');
@@ -1296,7 +1289,7 @@
                 const activity = parseFloat(document.getElementById('calcActivity').value);
 
                 if (!age || !weightLbs || !heightIn) {
-                    return showToast("Please fill in age, weight, and height.", "error");
+                    return window.showToast("Please fill in age, weight, and height.", "error");
                 }
 
                 // Mifflin-St Jeor Equation
@@ -1320,7 +1313,7 @@
                 const active = parseFloat(document.getElementById('calcActive').value);
 
                 if (!resting || !active) {
-                    return showToast("Please enter Resting and Active energy.", "error");
+                    return window.showToast("Please enter Resting and Active energy.", "error");
                 }
 
                 baseTDEE = resting + active;
@@ -1339,27 +1332,35 @@
             userGoals.carbs = c > 0 ? c : 0;
             userGoals.fat = f > 0 ? f : 0;
 
-            // CRITICAL FIX 1: Update the Manual Adjustment calorie input field directly so they are in sync!
-            const manualCalsInput = document.getElementById('setGoalCals') || document.getElementById('goalCals') || document.getElementById('setCalories');
+            // CRITICAL FIX: The UI update functions read directly from the Manual Adjustment physical inputs. 
+            // We MUST update the physical HTML elements first, or they will overwrite our new math!
+            
+            // 1. Force the Manual Adjustment Calorie Input to update
+            const manualCalsInput = document.getElementById('goalCals') || document.querySelector('#tab-settings input[type="number"]');
             if (manualCalsInput) {
                 manualCalsInput.value = userGoals.cals;
             }
 
-            // CRITICAL FIX 2: Set the manual slider percentages to match the newly calculated split
+            // 2. Force the Manual Adjustment Sliders to physically move to the new percentages
             if (userGoals.cals > 0) {
                 sliderVal1 = Math.round((userGoals.protein * 4) / userGoals.cals * 100);
                 sliderVal2 = sliderVal1 + Math.round((userGoals.carbs * 4) / userGoals.cals * 100);
+                
+                const s1 = document.getElementById('slider1');
+                const s2 = document.getElementById('slider2');
+                if (s1) s1.value = sliderVal1;
+                if (s2) s2.value = sliderVal2;
             }
 
-            // Save to the ACTUAL userGoals object, not the ghost window object
+            // Save the exact math to local storage
             localStorage.setItem('mt_userGoals', JSON.stringify(userGoals));
             
-            // Push updates instantly to the widgets
+            // Now that the physical HTML matches our math, it is safe to trigger the UI updates!
             if(typeof updateGoalsUI === 'function') updateGoalsUI();
             if(typeof updateDashboardUI === 'function') updateDashboardUI();
             
-            // CRITICAL FIX 3: Removed initSliderVals() from running here! 
-            // It was aggressively recalculating based on old DOM state and overwriting our math.
+            // Redraw the colored gradient track on the manual sliders so they visually match
+            if(typeof initSliderVals === 'function') initSliderVals(); 
             
             if(typeof syncProfileToCloud === 'function') syncProfileToCloud(); // Phase 3 trigger
             
