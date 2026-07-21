@@ -372,8 +372,8 @@
                                 <span class="text-[9px] font-bold text-gray-400 mt-2 uppercase tracking-widest">Mystery</span>
                             </div>
                             <div class="flex flex-col items-center justify-center shrink-0">
-                                <!-- NEW: The Backpacker replaced the Horse -->
-                                <i class="ph-duotone ph-backpack text-4xl text-amber-600 animate-hike"></i>
+                                <!-- NEW: The Airplane replaced the Horse -->
+                                <i class="ph-duotone ph-airplane-tilt text-4xl text-amber-600 animate-glide"></i>
                                 <span class="text-[9px] font-bold text-gray-400 mt-2 uppercase tracking-widest">Journeys</span>
                             </div>
                             <!-- Set 2 -->
@@ -390,7 +390,7 @@
                                 <span class="text-[9px] font-bold text-gray-400 mt-2 uppercase tracking-widest">Mystery</span>
                             </div>
                             <div class="flex flex-col items-center justify-center shrink-0">
-                                <i class="ph-duotone ph-backpack text-4xl text-amber-600 animate-hike"></i>
+                                <i class="ph-duotone ph-airplane-tilt text-4xl text-amber-600 animate-glide"></i>
                                 <span class="text-[9px] font-bold text-gray-400 mt-2 uppercase tracking-widest">Journeys</span>
                             </div>
                         </div>
@@ -416,32 +416,41 @@
                     <p class="text-gray-500 dark:text-gray-400 text-sm mb-6">We'll set your baseline targets based on this.</p>
                     
                     <div class="space-y-3">
-                        <label class="ob-radio-label">
-                            <input type="radio" name="ob_goal" value="500" class="hidden ob-radio-input">
-                            <div class="ob-radio-indicator"><div class="ob-radio-indicator-inner"></div></div>
-                            <div>
-                                <span class="font-bold text-gray-900 dark:text-white block">I want to build muscle</span>
-                                <span class="text-xs text-gray-500">+1 lb / week</span>
-                            </div>
-                        </label>
+                        <!-- Option 1 -->
+                        <div>
+                            <input type="radio" id="goal_muscle" name="ob_goal" value="500" class="hidden ob-radio-input">
+                            <label for="goal_muscle" class="ob-radio-label">
+                                <div class="ob-radio-indicator"><div class="ob-radio-indicator-inner"></div></div>
+                                <div>
+                                    <span class="font-bold text-gray-900 dark:text-white block">I want to build muscle</span>
+                                    <span class="text-xs text-gray-500">+1 lb / week</span>
+                                </div>
+                            </label>
+                        </div>
                         
-                        <label class="ob-radio-label">
-                            <input type="radio" name="ob_goal" value="0" class="hidden ob-radio-input" checked>
-                            <div class="ob-radio-indicator"><div class="ob-radio-indicator-inner"></div></div>
-                            <div>
-                                <span class="font-bold text-gray-900 dark:text-white block">I want to maintain</span>
-                                <span class="text-xs text-gray-500">Keep current weight</span>
-                            </div>
-                        </label>
+                        <!-- Option 2 (Default) -->
+                        <div>
+                            <input type="radio" id="goal_maintain" name="ob_goal" value="0" class="hidden ob-radio-input" checked>
+                            <label for="goal_maintain" class="ob-radio-label">
+                                <div class="ob-radio-indicator"><div class="ob-radio-indicator-inner"></div></div>
+                                <div>
+                                    <span class="font-bold text-gray-900 dark:text-white block">I want to maintain</span>
+                                    <span class="text-xs text-gray-500">Keep current weight</span>
+                                </div>
+                            </label>
+                        </div>
                         
-                        <label class="ob-radio-label">
-                            <input type="radio" name="ob_goal" value="-500" class="hidden ob-radio-input">
-                            <div class="ob-radio-indicator"><div class="ob-radio-indicator-inner"></div></div>
-                            <div>
-                                <span class="font-bold text-gray-900 dark:text-white block">I want to lean out</span>
-                                <span class="text-xs text-gray-500">-1 lb / week</span>
-                            </div>
-                        </label>
+                        <!-- Option 3 -->
+                        <div>
+                            <input type="radio" id="goal_lean" name="ob_goal" value="-500" class="hidden ob-radio-input">
+                            <label for="goal_lean" class="ob-radio-label">
+                                <div class="ob-radio-indicator"><div class="ob-radio-indicator-inner"></div></div>
+                                <div>
+                                    <span class="font-bold text-gray-900 dark:text-white block">I want to lean out</span>
+                                    <span class="text-xs text-gray-500">-1 lb / week</span>
+                                </div>
+                            </label>
+                        </div>
                     </div>
                 </div>
             </div>
