@@ -335,11 +335,14 @@
         </div>
     </header>
 
+    <!-- Chat Overlay -->
     <div id="sageChatOverlay" class="fixed top-0 left-0 w-full h-full z-[400] bg-gray-50 dark:bg-gray-950 flex flex-col transform translate-y-full transition-transform duration-300">
-        <!-- Chat Header -->
-        <div class="px-5 py-4 border-b border-gray-200 dark:border-gray-800 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md flex justify-between items-center relative z-10">
+        
+        <!-- Header -->
+        <div class="bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg p-4 pb-3 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between shadow-sm transition-colors shrink-0 z-50" style="padding-top: max(env(safe-area-inset-top), 3.5rem);">
+            
             <div class="flex items-center gap-3">
-                <!-- NEW Minimalist Leaf Avatar for Chat Header -->
+                <!-- Premium Minimalist Leaf Avatar -->
                 <div class="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-50 to-emerald-100/50 dark:from-emerald-900/30 dark:to-emerald-800/20 flex items-center justify-center border border-emerald-100 dark:border-emerald-800/50">
                     <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-emerald-700 dark:text-emerald-400 stroke-current">
                         <path d="M19.5 3.5C19.5 3.5 21 11 16.5 15.5C12 20 5.5 20 5.5 20C5.5 20 5 14 9.5 9.5C14 5 19.5 3.5 19.5 3.5Z" class="fill-emerald-600/15 dark:fill-emerald-400/20" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
