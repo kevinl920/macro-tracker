@@ -1218,6 +1218,43 @@
             showToast("Custom goals saved locally!", "success");
         };
 
+        window.updateGoalSlider = (e) => {
+            let val = parseInt(e.target.value);
+            
+            // Tiny magnetic snap exactly at 0 so users can easily find "Maintain Weight"
+            if (Math.abs(val) < 15) {
+                val = 0;
+                e.target.value = 0;
+            }
+
+            const modeText = document.getElementById('goalModeText');
+            const rateText = document.getElementById('goalRateText');
+            const warning = document.getElementById('goalWarning');
+
+            // Update text based on goal
+            if (val === 0) {
+                modeText.innerHTML = "Maintain Weight";
+                modeText.className = "text-sm font-bold text-gray-900 dark:text-white";
+            } else if (val < 0) {
+                modeText.innerHTML = `Lose Weight <span class="text-xs">(${val} kcal)</span>`;
+                modeText.className = "text-sm font-bold text-rose-500";
+            } else {
+                modeText.innerHTML = `Gain Weight <span class="text-xs">(+${val} kcal)</span>`;
+                modeText.className = "text-sm font-bold text-emerald-500";
+            }
+
+            // 500 kcal/day offset equals exactly 1 lb per week
+            const lbs = Math.abs(val) / 500;
+            rateText.innerText = `${lbs.toFixed(2)} lbs/wk`;
+
+            // Show warning for aggressive deficits
+            if (val < -500) {
+                warning.classList.remove('hidden');
+            } else {
+                warning.classList.add('hidden');
+            }
+        };
+
         window.currentCalcMode = 'basic';
         window.switchCalcTab = (mode) => {
             window.currentCalcMode = mode;
@@ -1298,7 +1335,9 @@
             localStorage.setItem('mt_userGoals', JSON.stringify(userGoals));
             updateGoalsUI();
             updateDashboardUI();
-            initSliderVals(); 
+            
+            // CRITICAL FIX: Removed initSliderVals() from here. It was reading the old manual 
+            // slider percentages and instantly overwriting the exact macros we just calculated!
             
             if(window.syncProfileToCloud) window.syncProfileToCloud(); // Phase 3 trigger
             
