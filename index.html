@@ -1296,7 +1296,7 @@
                 const activity = parseFloat(document.getElementById('calcActivity').value);
 
                 if (!age || !weightLbs || !heightIn) {
-                    return window.showToast("Please fill in age, weight, and height.", "error");
+                    return showToast("Please fill in age, weight, and height.", "error");
                 }
 
                 // Mifflin-St Jeor Equation
@@ -1313,14 +1313,14 @@
                 f = Math.round((targetCals * 0.30) / 9);
                 c = Math.round((targetCals - (p * 4) - (f * 9)) / 4);
                 
-                window.userGoals.cals = targetCals;
+                userGoals.cals = targetCals;
             } else {
                 // Apple Health Mode
                 const resting = parseFloat(document.getElementById('calcResting').value);
                 const active = parseFloat(document.getElementById('calcActive').value);
 
                 if (!resting || !active) {
-                    return window.showToast("Please enter Resting and Active energy.", "error");
+                    return showToast("Please enter Resting and Active energy.", "error");
                 }
 
                 baseTDEE = resting + active;
@@ -1331,32 +1331,39 @@
                 c = Math.round((targetCals * 0.40) / 4);
                 f = Math.round((targetCals * 0.30) / 9);
 
-                window.userGoals.cals = targetCals;
+                userGoals.cals = targetCals;
             }
 
             // Fallback safety to prevent negative macros
-            window.userGoals.protein = p > 0 ? p : 0;
-            window.userGoals.carbs = c > 0 ? c : 0;
-            window.userGoals.fat = f > 0 ? f : 0;
+            userGoals.protein = p > 0 ? p : 0;
+            userGoals.carbs = c > 0 ? c : 0;
+            userGoals.fat = f > 0 ? f : 0;
 
-            // CRITICAL BUG FIX: Force the background manual sliders to visually match the new calculation,
-            // so they stop overwriting the Apple Health data with their default 30/40/30 splits!
-            if (window.userGoals.cals > 0) {
-                window.sliderVal1 = Math.round((window.userGoals.protein * 4) / window.userGoals.cals * 100);
-                window.sliderVal2 = window.sliderVal1 + Math.round((window.userGoals.carbs * 4) / window.userGoals.cals * 100);
+            // CRITICAL FIX 1: Update the Manual Adjustment calorie input field directly so they are in sync!
+            const manualCalsInput = document.getElementById('setGoalCals') || document.getElementById('goalCals') || document.getElementById('setCalories');
+            if (manualCalsInput) {
+                manualCalsInput.value = userGoals.cals;
             }
 
-            localStorage.setItem('mt_userGoals', JSON.stringify(window.userGoals));
+            // CRITICAL FIX 2: Set the manual slider percentages to match the newly calculated split
+            if (userGoals.cals > 0) {
+                sliderVal1 = Math.round((userGoals.protein * 4) / userGoals.cals * 100);
+                sliderVal2 = sliderVal1 + Math.round((userGoals.carbs * 4) / userGoals.cals * 100);
+            }
+
+            // Save to the ACTUAL userGoals object, not the ghost window object
+            localStorage.setItem('mt_userGoals', JSON.stringify(userGoals));
             
+            // Push updates instantly to the widgets
             if(typeof updateGoalsUI === 'function') updateGoalsUI();
             if(typeof updateDashboardUI === 'function') updateDashboardUI();
             
-            // Now it is safe to call this, because we synced the slider percentages above!
-            if(typeof initSliderVals === 'function') initSliderVals(); 
+            // CRITICAL FIX 3: Removed initSliderVals() from running here! 
+            // It was aggressively recalculating based on old DOM state and overwriting our math.
             
-            if(window.syncProfileToCloud) window.syncProfileToCloud(); // Phase 3 trigger
+            if(typeof syncProfileToCloud === 'function') syncProfileToCloud(); // Phase 3 trigger
             
-            window.showToast(`Goals updated via ${window.currentCalcMode === 'basic' ? 'Basic Calculator' : 'Apple Health'}!`, "success");
+            showToast(`Goals updated via ${window.currentCalcMode === 'basic' ? 'Basic Calculator' : 'Apple Health'}!`, "success");
         };
 
         document.getElementById('imagePreview').onclick = () => document.getElementById('imageInput').click();
