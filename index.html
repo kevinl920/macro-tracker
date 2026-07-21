@@ -1289,7 +1289,7 @@
                 const activity = parseFloat(document.getElementById('calcActivity').value);
 
                 if (!age || !weightLbs || !heightIn) {
-                    return showToast("Please fill in age, weight, and height.", "error");
+                    return window.showToast ? window.showToast("Please fill in age, weight, and height.", "error") : alert("Missing data");
                 }
 
                 // Mifflin-St Jeor Equation
@@ -1313,7 +1313,7 @@
                 const active = parseFloat(document.getElementById('calcActive').value);
 
                 if (!resting || !active) {
-                    return showToast("Please enter Resting and Active energy.", "error");
+                    return window.showToast ? window.showToast("Please enter Resting and Active energy.", "error") : alert("Missing data");
                 }
 
                 baseTDEE = resting + active;
@@ -1341,8 +1341,11 @@
             sliderVal1 = p_pct;
             sliderVal2 = p_pct + c_pct;
 
-            // 4. Update the Manual Adjustment physical DOM elements
-            const manualCalsInput = document.getElementById('goalCals') || document.querySelector('#tab-settings input[type="number"]');
+            // 4. STRICT DOM UPDATE: Only look for the exact Manual Adjustment ID, never generic inputs!
+            const manualCalsInput = document.getElementById('setGoalCals') || 
+                                    document.getElementById('goalCals') || 
+                                    document.getElementById('setCalories');
+                                    
             if (manualCalsInput) {
                 manualCalsInput.value = userGoals.cals;
             }
@@ -1361,7 +1364,9 @@
             if (typeof updateDashboardUI === 'function') updateDashboardUI(); // Updates the dashboard rings
             if (typeof syncProfileToCloud === 'function') syncProfileToCloud(); // Pushes to friends feed
             
-            showToast(`Goals updated via ${window.currentCalcMode === 'basic' ? 'Basic Calculator' : 'Apple Health'}!`, "success");
+            if (window.showToast) {
+                window.showToast(`Goals updated via ${window.currentCalcMode === 'basic' ? 'Basic Calculator' : 'Apple Health'}!`, "success");
+            }
         };
 
         document.getElementById('imagePreview').onclick = () => document.getElementById('imageInput').click();
