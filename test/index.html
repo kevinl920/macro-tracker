@@ -409,45 +409,59 @@
                 </div>
             </div>
 
-            <!-- Slide 3: Goal Selection -->
+            <!-- STREAMING_CHUNK: Slide 3 - Goal Selection (Foolproof CSS Version) -->
             <div class="ob-slide absolute inset-0 flex flex-col items-start justify-center p-8 translate-x-full opacity-0 overflow-y-auto" id="ob-slide-3">
+                <style>
+                    /* Local styles for radio buttons to guarantee they light up! */
+                    .goal-radio:checked + label { border-color: #10b981; background-color: #ecfdf5; }
+                    .dark .goal-radio:checked + label { background-color: rgba(16, 185, 129, 0.1); border-color: #10b981; }
+                    .goal-radio:checked + label .radio-circle { border-color: #10b981; }
+                    .goal-radio:checked + label .radio-dot { background-color: #10b981; }
+                </style>
+                
                 <div class="w-full max-w-sm mx-auto">
                     <h2 class="text-2xl font-black text-gray-900 dark:text-white mb-2 tracking-tight">What's your goal?</h2>
                     <p class="text-gray-500 dark:text-gray-400 text-sm mb-6">We'll set your baseline targets based on this.</p>
                     
                     <div class="space-y-3">
-                        <!-- Option 1 -->
+                        <!-- Option 1: Muscle -->
                         <div>
-                            <input type="radio" id="goal_muscle" name="ob_goal" value="500" class="hidden ob-radio-input">
-                            <label for="goal_muscle" class="ob-radio-label">
-                                <div class="ob-radio-indicator"><div class="ob-radio-indicator-inner"></div></div>
+                            <input type="radio" id="goal_muscle" name="ob_goal" value="500" class="hidden goal-radio">
+                            <label for="goal_muscle" class="flex items-center gap-4 p-4 rounded-2xl border-2 border-transparent bg-gray-50 dark:bg-gray-800 cursor-pointer transition-all">
+                                <div class="radio-circle w-6 h-6 rounded-full border-2 border-gray-300 dark:border-gray-600 flex items-center justify-center shrink-0 transition-colors">
+                                    <div class="radio-dot w-3 h-3 rounded-full bg-transparent transition-colors"></div>
+                                </div>
                                 <div>
-                                    <span class="font-bold text-gray-900 dark:text-white block">I want to build muscle</span>
-                                    <span class="text-xs text-gray-500">+1 lb / week</span>
+                                    <span class="font-bold text-gray-900 dark:text-white block leading-tight mb-0.5">I want to build muscle</span>
+                                    <span class="text-xs text-gray-500 font-medium">+1 lb / week</span>
                                 </div>
                             </label>
                         </div>
                         
-                        <!-- Option 2 (Default) -->
+                        <!-- Option 2: Maintain (Default Checked) -->
                         <div>
-                            <input type="radio" id="goal_maintain" name="ob_goal" value="0" class="hidden ob-radio-input" checked>
-                            <label for="goal_maintain" class="ob-radio-label">
-                                <div class="ob-radio-indicator"><div class="ob-radio-indicator-inner"></div></div>
+                            <input type="radio" id="goal_maintain" name="ob_goal" value="0" class="hidden goal-radio" checked>
+                            <label for="goal_maintain" class="flex items-center gap-4 p-4 rounded-2xl border-2 border-transparent bg-gray-50 dark:bg-gray-800 cursor-pointer transition-all">
+                                <div class="radio-circle w-6 h-6 rounded-full border-2 border-gray-300 dark:border-gray-600 flex items-center justify-center shrink-0 transition-colors">
+                                    <div class="radio-dot w-3 h-3 rounded-full bg-transparent transition-colors"></div>
+                                </div>
                                 <div>
-                                    <span class="font-bold text-gray-900 dark:text-white block">I want to maintain</span>
-                                    <span class="text-xs text-gray-500">Keep current weight</span>
+                                    <span class="font-bold text-gray-900 dark:text-white block leading-tight mb-0.5">I want to maintain</span>
+                                    <span class="text-xs text-gray-500 font-medium">Keep current weight</span>
                                 </div>
                             </label>
                         </div>
                         
-                        <!-- Option 3 -->
+                        <!-- Option 3: Lean Out -->
                         <div>
-                            <input type="radio" id="goal_lean" name="ob_goal" value="-500" class="hidden ob-radio-input">
-                            <label for="goal_lean" class="ob-radio-label">
-                                <div class="ob-radio-indicator"><div class="ob-radio-indicator-inner"></div></div>
+                            <input type="radio" id="goal_lean" name="ob_goal" value="-500" class="hidden goal-radio">
+                            <label for="goal_lean" class="flex items-center gap-4 p-4 rounded-2xl border-2 border-transparent bg-gray-50 dark:bg-gray-800 cursor-pointer transition-all">
+                                <div class="radio-circle w-6 h-6 rounded-full border-2 border-gray-300 dark:border-gray-600 flex items-center justify-center shrink-0 transition-colors">
+                                    <div class="radio-dot w-3 h-3 rounded-full bg-transparent transition-colors"></div>
+                                </div>
                                 <div>
-                                    <span class="font-bold text-gray-900 dark:text-white block">I want to lean out</span>
-                                    <span class="text-xs text-gray-500">-1 lb / week</span>
+                                    <span class="font-bold text-gray-900 dark:text-white block leading-tight mb-0.5">I want to lean out</span>
+                                    <span class="text-xs text-gray-500 font-medium">-1 lb / week</span>
                                 </div>
                             </label>
                         </div>
