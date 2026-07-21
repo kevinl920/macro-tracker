@@ -64,12 +64,12 @@
         .animate-smoke { animation: float-smoke 2.5s infinite ease-in; }
         .animate-smoke-delay { animation: float-smoke 2.5s infinite ease-in 1.25s; }
         
-        @keyframes gallop {
-            0%, 100% { transform: translateY(0) rotate(0deg); }
-            25% { transform: translateY(-3px) rotate(-4deg); }
-            75% { transform: translateY(2px) rotate(4deg); }
+        /* STREAMING_CHUNK: Gliding Airplane Animation */
+        @keyframes glide {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-5px) rotate(3deg); }
         }
-        .animate-gallop { animation: gallop 0.6s infinite ease-in-out; }
+        .animate-glide { animation: glide 2.5s infinite ease-in-out; }
         
         @keyframes scroll-marquee {
             0% { transform: translateX(0); }
@@ -324,33 +324,28 @@
     <!-- ONBOARDING FULL-SCREEN OVERLAY            -->
     <!-- ========================================= -->
     <div id="onboardingOverlay" class="fixed inset-0 bg-white dark:bg-gray-950 z-[999] opacity-0 pointer-events-none transition-opacity duration-300 flex-col font-sans">
-        <!-- Slides Container -->
+        
         <div class="flex-1 relative overflow-hidden" id="ob-container">
-            <!-- Slide 1: Welcome & Chart -->
+            
+            <!-- Slide 0: Welcome & Chart -->
             <div class="ob-slide absolute inset-0 flex flex-col items-center justify-center p-8 translate-x-0 opacity-100" id="ob-slide-0">
                 <div class="w-full max-w-sm">
                     <h1 class="text-3xl font-black text-gray-900 dark:text-white mb-4 tracking-tight leading-tight">Welcome!</h1>
                     <p class="text-gray-500 dark:text-gray-400 text-lg mb-10 leading-relaxed">MacroTrack can turn your health goals into reality.</p>
                     
-                    <!-- Animated Graph -->
                     <div class="w-full h-48 bg-gray-50 dark:bg-gray-900 rounded-3xl p-6 relative border border-gray-100 dark:border-gray-800 shadow-inner">
                         <svg viewBox="0 0 200 100" class="w-full h-full overflow-visible drop-shadow-md">
-                            <!-- Background Grid -->
                             <line x1="0" y1="25" x2="200" y2="25" stroke="currentColor" class="text-gray-200 dark:text-gray-800" stroke-width="1" stroke-dasharray="4" />
                             <line x1="0" y1="50" x2="200" y2="50" stroke="currentColor" class="text-gray-200 dark:text-gray-800" stroke-width="1" stroke-dasharray="4" />
                             <line x1="0" y1="75" x2="200" y2="75" stroke="currentColor" class="text-gray-200 dark:text-gray-800" stroke-width="1" stroke-dasharray="4" />
-                            
-                            <!-- The Trend Line (High -> Dip -> Bounce -> Goal) -->
                             <path d="M 10 20 Q 40 20, 60 55 T 110 45 T 160 85 T 190 80" fill="none" stroke="#10b981" stroke-width="4.5" stroke-linecap="round" class="animate-draw" />
-                            
-                            <!-- Goal Dot (Fades in at the end of the line animation) -->
                             <circle cx="190" cy="80" r="6" fill="#10b981" class="opacity-0 transition-opacity duration-500 delay-[2000ms]" style="animation: fadeIn 0.5s forwards 2s" />
                         </svg>
                     </div>
                 </div>
             </div>
 
-            <!-- Slide 2: The Problem & Scrolling Scenarios -->
+            <!-- Slide 1: The Problem & Scrolling Scenarios -->
             <div class="ob-slide absolute inset-0 flex flex-col items-center justify-center p-8 translate-x-full opacity-0" id="ob-slide-1">
                 <div class="w-full max-w-sm">
                     <h2 class="text-2xl font-black text-gray-900 dark:text-white mb-4 tracking-tight">Sometimes life gets in the way.</h2>
@@ -358,13 +353,10 @@
                         We know. Dinner with friends. A fridge Frankenstein meal. Hyperlocal cuisine on your journeys through a Mongolian village.<br><br><b>Not everything has a nutrition label.</b>
                     </p>
                     
-                    <!-- Infinite Scrolling Marquee -->
                     <div class="w-full h-32 bg-gray-50 dark:bg-gray-900 rounded-3xl overflow-hidden relative border border-gray-100 dark:border-gray-800 flex items-center shadow-inner">
-                        <!-- Left/Right Fade Gradients -->
                         <div class="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-gray-50 dark:from-gray-900 to-transparent z-10"></div>
                         <div class="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-gray-50 dark:from-gray-900 to-transparent z-10"></div>
                         
-                        <!-- Scrolling Track (Duplicated for seamless loop) -->
                         <div class="animate-marquee gap-16 px-8 items-center justify-around absolute left-0">
                             <!-- Set 1 -->
                             <div class="flex flex-col items-center justify-center shrink-0">
@@ -380,7 +372,8 @@
                                 <span class="text-[9px] font-bold text-gray-400 mt-2 uppercase tracking-widest">Mystery</span>
                             </div>
                             <div class="flex flex-col items-center justify-center shrink-0">
-                                <i class="ph-duotone ph-horse text-4xl text-amber-600 animate-gallop"></i>
+                                <!-- NEW: The Backpacker replaced the Horse -->
+                                <i class="ph-duotone ph-backpack text-4xl text-amber-600 animate-hike"></i>
                                 <span class="text-[9px] font-bold text-gray-400 mt-2 uppercase tracking-widest">Journeys</span>
                             </div>
                             <!-- Set 2 -->
@@ -397,7 +390,7 @@
                                 <span class="text-[9px] font-bold text-gray-400 mt-2 uppercase tracking-widest">Mystery</span>
                             </div>
                             <div class="flex flex-col items-center justify-center shrink-0">
-                                <i class="ph-duotone ph-horse text-4xl text-amber-600 animate-gallop"></i>
+                                <i class="ph-duotone ph-backpack text-4xl text-amber-600 animate-hike"></i>
                                 <span class="text-[9px] font-bold text-gray-400 mt-2 uppercase tracking-widest">Journeys</span>
                             </div>
                         </div>
@@ -405,7 +398,7 @@
                 </div>
             </div>
 
-            <!-- Slide 3: The Solution -->
+            <!-- Slide 2: The Solution -->
             <div class="ob-slide absolute inset-0 flex flex-col items-center justify-center p-8 translate-x-full opacity-0" id="ob-slide-2">
                 <div class="w-full max-w-sm text-center">
                     <div class="w-20 h-20 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -416,47 +409,124 @@
                 </div>
             </div>
 
-            <!-- Slide 4: Build Profile -->
+            <!-- Slide 3: Goal Selection -->
             <div class="ob-slide absolute inset-0 flex flex-col items-start justify-center p-8 translate-x-full opacity-0 overflow-y-auto" id="ob-slide-3">
                 <div class="w-full max-w-sm mx-auto">
-                    <h2 class="text-2xl font-black text-gray-900 dark:text-white mb-2 tracking-tight">Let's build your profile.</h2>
-                    <p class="text-gray-500 dark:text-gray-400 text-sm mb-6">Placeholder for your custom questions! (I will add them here when you are ready).</p>
+                    <h2 class="text-2xl font-black text-gray-900 dark:text-white mb-2 tracking-tight">What's your goal?</h2>
+                    <p class="text-gray-500 dark:text-gray-400 text-sm mb-6">We'll set your baseline targets based on this.</p>
                     
                     <div class="space-y-3">
-                        <div>
-                            <input type="checkbox" id="q1" class="ob-checkbox-input hidden">
-                            <label for="q1" class="ob-checkbox-label">
-                                <div class="w-6 h-6 rounded-full border-2 border-gray-300 dark:border-gray-600 flex items-center justify-center shrink-0">
-                                    <i class="ph-bold ph-check text-transparent transition-colors"></i>
-                                </div>
-                                <span class="font-medium text-sm text-gray-800 dark:text-gray-200">I want to build muscle</span>
-                            </label>
-                        </div>
-                        <div>
-                            <input type="checkbox" id="q2" class="ob-checkbox-input hidden">
-                            <label for="q2" class="ob-checkbox-label">
-                                <div class="w-6 h-6 rounded-full border-2 border-gray-300 dark:border-gray-600 flex items-center justify-center shrink-0">
-                                    <i class="ph-bold ph-check text-transparent transition-colors"></i>
-                                </div>
-                                <span class="font-medium text-sm text-gray-800 dark:text-gray-200">I want to lean out</span>
-                            </label>
-                        </div>
-                        <style> 
-                            .ob-checkbox-input:checked + .ob-checkbox-label i { color: #10b981; }
-                            .ob-checkbox-input:checked + .ob-checkbox-label .w-6 { border-color: #10b981; }
-                        </style>
+                        <label class="ob-radio-label">
+                            <input type="radio" name="ob_goal" value="500" class="hidden ob-radio-input">
+                            <div class="ob-radio-indicator"><div class="ob-radio-indicator-inner"></div></div>
+                            <div>
+                                <span class="font-bold text-gray-900 dark:text-white block">I want to build muscle</span>
+                                <span class="text-xs text-gray-500">+1 lb / week</span>
+                            </div>
+                        </label>
+                        
+                        <label class="ob-radio-label">
+                            <input type="radio" name="ob_goal" value="0" class="hidden ob-radio-input" checked>
+                            <div class="ob-radio-indicator"><div class="ob-radio-indicator-inner"></div></div>
+                            <div>
+                                <span class="font-bold text-gray-900 dark:text-white block">I want to maintain</span>
+                                <span class="text-xs text-gray-500">Keep current weight</span>
+                            </div>
+                        </label>
+                        
+                        <label class="ob-radio-label">
+                            <input type="radio" name="ob_goal" value="-500" class="hidden ob-radio-input">
+                            <div class="ob-radio-indicator"><div class="ob-radio-indicator-inner"></div></div>
+                            <div>
+                                <span class="font-bold text-gray-900 dark:text-white block">I want to lean out</span>
+                                <span class="text-xs text-gray-500">-1 lb / week</span>
+                            </div>
+                        </label>
                     </div>
                 </div>
             </div>
+
+            <!-- Slide 4: Apple Health & TDEE Calculator -->
+            <div class="ob-slide absolute inset-0 flex flex-col items-start justify-center p-8 translate-x-full opacity-0 overflow-y-auto" id="ob-slide-4">
+                <div class="w-full max-w-sm mx-auto pb-12">
+                    <h2 class="text-2xl font-black text-gray-900 dark:text-white mb-2 tracking-tight">Are you using Apple Health?</h2>
+                    <p class="text-gray-500 dark:text-gray-400 text-sm mb-6">Connect for dynamic daily goals, or use our standard estimator.</p>
+
+                    <!-- Toggle -->
+                    <div class="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-xl mb-6">
+                        <button id="obBtnAH" onclick="obSetMode('apple')" class="flex-1 py-2 text-sm font-bold rounded-lg bg-white dark:bg-gray-900 shadow-sm text-blue-600 dark:text-blue-400 transition-all">Yes (Accurate)</button>
+                        <button id="obBtnBasic" onclick="obSetMode('basic')" class="flex-1 py-2 text-sm font-bold rounded-lg text-gray-500 dark:text-gray-400 bg-transparent transition-all">No (Basic)</button>
+                    </div>
+
+                    <!-- Apple Health View -->
+                    <div id="obViewAH" class="space-y-4">
+                        <div>
+                            <label class="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1">Resting Energy (kcal)</label>
+                            <input type="number" id="obResting" class="w-full p-3 bg-gray-50 dark:bg-gray-800 border border-transparent focus:border-blue-500 rounded-xl outline-none font-bold" placeholder="e.g. 1850">
+                        </div>
+                        <div>
+                            <label class="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1">Active Energy (kcal)</label>
+                            <input type="number" id="obActive" class="w-full p-3 bg-gray-50 dark:bg-gray-800 border border-transparent focus:border-blue-500 rounded-xl outline-none font-bold" placeholder="e.g. 500">
+                        </div>
+                    </div>
+
+                    <!-- Basic View (Hidden by default) -->
+                    <div id="obViewBasic" class="space-y-4 hidden">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="text-xs font-bold text-gray-500 block mb-1">Age</label>
+                                <input type="number" id="obAge" class="w-full p-3 bg-gray-50 dark:bg-gray-800 rounded-xl outline-none font-bold" placeholder="30">
+                            </div>
+                            <div>
+                                <label class="text-xs font-bold text-gray-500 block mb-1">Gender</label>
+                                <select id="obGender" class="w-full p-3 bg-gray-50 dark:bg-gray-800 rounded-xl outline-none font-bold"><option value="M">Male</option><option value="F">Female</option></select>
+                            </div>
+                            <div>
+                                <label class="text-xs font-bold text-gray-500 block mb-1">Weight (lbs)</label>
+                                <input type="number" id="obWeight" class="w-full p-3 bg-gray-50 dark:bg-gray-800 rounded-xl outline-none font-bold" placeholder="150">
+                            </div>
+                            <div>
+                                <label class="text-xs font-bold text-gray-500 block mb-1">Height (in)</label>
+                                <input type="number" id="obHeight" class="w-full p-3 bg-gray-50 dark:bg-gray-800 rounded-xl outline-none font-bold" placeholder="68">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="text-xs font-bold text-gray-500 block mb-1">Activity Level</label>
+                            <select id="obActivity" class="w-full p-3 bg-gray-50 dark:bg-gray-800 rounded-xl outline-none font-bold text-sm">
+                                <option value="1.2">Sedentary (Desk Job)</option>
+                                <option value="1.375">Lightly Active (1-3 days)</option>
+                                <option value="1.55">Moderately Active (3-5 days)</option>
+                                <option value="1.725">Very Active (6-7 days)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Shared Pre-populated Goal Slider -->
+                    <div class="mt-6 pt-6 border-t border-gray-100 dark:border-gray-800">
+                        <div class="flex justify-between items-end mb-4">
+                            <div>
+                                <h4 class="font-bold text-gray-900 dark:text-white">Daily Target Pace</h4>
+                                <p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest" id="obSliderLabel">Maintain</p>
+                            </div>
+                            <div class="bg-gray-100 dark:bg-gray-800 px-3 py-1 rounded-lg">
+                                <span class="font-black text-blue-600 dark:text-blue-400" id="obSliderVal">0</span> <span class="text-xs text-gray-500">kcal</span>
+                            </div>
+                        </div>
+                        <input type="range" id="obGoalSlider" min="-1000" max="1000" step="250" value="0" class="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer goal-slider" oninput="obUpdateSlider(this.value)">
+                    </div>
+                </div>
+            </div>
+
         </div>
 
         <!-- Footer Controls -->
-        <div class="p-8 flex justify-between items-center pb-12">
+        <div class="p-8 flex justify-between items-center pb-12 bg-white dark:bg-gray-950 z-20">
             <div class="flex gap-2" id="ob-dots">
                 <div class="w-2 h-2 rounded-full bg-gray-800 dark:bg-white transition-all duration-300" id="dot-0"></div>
                 <div class="w-2 h-2 rounded-full bg-gray-300 dark:bg-gray-700 transition-all duration-300" id="dot-1"></div>
                 <div class="w-2 h-2 rounded-full bg-gray-300 dark:bg-gray-700 transition-all duration-300" id="dot-2"></div>
                 <div class="w-2 h-2 rounded-full bg-gray-300 dark:bg-gray-700 transition-all duration-300" id="dot-3"></div>
+                <div class="w-2 h-2 rounded-full bg-gray-300 dark:bg-gray-700 transition-all duration-300" id="dot-4"></div>
             </div>
             <button onclick="nextOnboardingSlide()" id="ob-next-btn" class="bg-gray-900 dark:bg-white text-white dark:text-black font-bold py-3 px-8 rounded-full shadow-lg active:scale-95 transition-transform">
                 Continue
@@ -816,14 +886,7 @@
         <!-- ==================== TAB 4: SETTINGS ==================== -->
         <div id="tab-settings" class="tab-content">
             <div class="p-4 space-y-6 pb-8 mt-2">
-                <!-- NEW: Replay Onboarding Button -->
-                <button onclick="startOnboarding()" class="w-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 font-bold py-3 rounded-xl active:scale-95 transition-transform border border-emerald-200 dark:border-emerald-800 flex items-center justify-center gap-2">
-                    <i class="ph-bold ph-play"></i> Replay Onboarding Flow
-                </button>
-
-                <!-- User Info -->
-                <div class="bg-white dark:bg-gray-900 p-4 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800">
-                    <h3 class="font-bold text-gray-900 dark:text-white mb-2">Profile</h3>
+           
                 <!-- Phase 1: Firebase Auth Card -->
                 <div class="bg-white dark:bg-gray-900 p-4 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800">
                     <h3 class="font-bold text-gray-900 dark:text-white mb-2">Cloud Account</h3>
@@ -1257,63 +1320,72 @@
             }
         };
 
-                // ==========================================
+        // ==========================================
         // ONBOARDING FLOW LOGIC
         // ==========================================
         let currentObSlide = 0;
-        const totalObSlides = 4;
+        const totalObSlides = 5;
+        window.obMode = 'apple'; // Default view for slide 4
 
         window.startOnboarding = () => {
             currentObSlide = 0;
-            // Reset all slides to original positions
             for(let i=0; i<totalObSlides; i++) {
                 const el = document.getElementById(`ob-slide-${i}`);
-                if(i===0) {
-                    el.className = "ob-slide absolute inset-0 flex flex-col items-center justify-center p-8 translate-x-0 opacity-100";
-                } else {
-                    el.className = "ob-slide absolute inset-0 flex flex-col items-center justify-center p-8 translate-x-full opacity-0";
-                }
-            }
-            if(document.getElementById('ob-slide-3')) {
-                document.getElementById('ob-slide-3').classList.replace('items-center', 'items-start');
-                document.getElementById('ob-slide-3').classList.add('overflow-y-auto');
+                if(el) el.className = `ob-slide absolute inset-0 flex flex-col items-${i===3||i===4?'start':'center'} justify-center p-8 translate-x-${i===0?'0 opacity-100':'full opacity-0'} ${i===3||i===4?'overflow-y-auto':''}`;
             }
             document.getElementById('ob-next-btn').innerText = "Continue";
             
             const overlay = document.getElementById('onboardingOverlay');
-            if (overlay) {
-                overlay.classList.remove('hidden');
-                overlay.classList.add('flex');
-                
-                // Slight delay to allow display:flex to render before fading in
-                setTimeout(() => {
-                    overlay.classList.add('show');
-                    updateOnboardingUI();
-                    
-                    // Retrigger the SVG line drawing animation
-                    const path = document.querySelector('.animate-draw');
-                    if (path) {
-                        path.style.animation = 'none';
-                        path.offsetHeight; /* trigger reflow */
-                        path.style.animation = null; 
-                    }
-                }, 50);
+            overlay.classList.remove('hidden');
+            overlay.classList.add('flex');
+            
+            setTimeout(() => {
+                overlay.classList.add('show');
+                updateOnboardingUI();
+                const path = document.querySelector('.animate-draw');
+                if (path) { path.style.animation = 'none'; path.offsetHeight; path.style.animation = null; }
+            }, 50);
+        };
+
+        // Handles the toggle between Apple Health and Basic on Slide 4
+        window.obSetMode = (mode) => {
+            window.obMode = mode;
+            const btnAH = document.getElementById('obBtnAH');
+            const btnBasic = document.getElementById('obBtnBasic');
+            const viewAH = document.getElementById('obViewAH');
+            const viewBasic = document.getElementById('obViewBasic');
+            
+            if (mode === 'apple') {
+                btnAH.className = "flex-1 py-2 text-sm font-bold rounded-lg bg-white dark:bg-gray-900 shadow-sm text-blue-600 dark:text-blue-400 transition-all";
+                btnBasic.className = "flex-1 py-2 text-sm font-bold rounded-lg text-gray-500 dark:text-gray-400 bg-transparent transition-all";
+                viewAH.classList.remove('hidden'); viewBasic.classList.add('hidden');
+            } else {
+                btnBasic.className = "flex-1 py-2 text-sm font-bold rounded-lg bg-white dark:bg-gray-900 shadow-sm text-blue-600 dark:text-blue-400 transition-all";
+                btnAH.className = "flex-1 py-2 text-sm font-bold rounded-lg text-gray-500 dark:text-gray-400 bg-transparent transition-all";
+                viewBasic.classList.remove('hidden'); viewAH.classList.add('hidden');
             }
         };
 
+        // Updates the visual text of the slider on Slide 4
+        window.obUpdateSlider = (val) => {
+            document.getElementById('obSliderVal').innerText = (val > 0 ? '+' : '') + val;
+            let label = "Maintain";
+            if(val == 500) label = "Build Muscle (+1 lb/wk)";
+            else if(val == -500) label = "Lean Out (-1 lb/wk)";
+            else if(val < 0) label = "Deficit";
+            else if(val > 0) label = "Surplus";
+            document.getElementById('obSliderLabel').innerText = label;
+        };
+
         window.nextOnboardingSlide = () => {
-            if (currentObSlide === 2) {
-                document.getElementById('ob-next-btn').innerText = "Finish Setup";
-            }
-            
-            if (currentObSlide >= totalObSlides - 1) {
+            if (currentObSlide === totalObSlides - 1) {
                 finishOnboarding();
                 return;
             }
             
             // Slide current out to the left
             const currentEl = document.getElementById(`ob-slide-${currentObSlide}`);
-            if (currentEl) {
+            if(currentEl) {
                 currentEl.classList.remove('translate-x-0', 'opacity-100');
                 currentEl.classList.add('-translate-x-full', 'opacity-0');
             }
@@ -1322,9 +1394,21 @@
             
             // Slide next in from the right
             const nextEl = document.getElementById(`ob-slide-${currentObSlide}`);
-            if (nextEl) {
+            if(nextEl) {
                 nextEl.classList.remove('translate-x-full', 'opacity-0');
                 nextEl.classList.add('translate-x-0', 'opacity-100');
+            }
+            
+            // UI Logic for specific slides
+            if (currentObSlide === 3) {
+                document.getElementById('ob-next-btn').innerText = "Continue";
+            }
+            if (currentObSlide === 4) {
+                document.getElementById('ob-next-btn').innerText = "Calculate & Finish";
+                // CRITICAL: Read the selected goal from Slide 3 and prepopulate the slider on Slide 4
+                const selectedGoal = document.querySelector('input[name="ob_goal"]:checked')?.value || "0";
+                document.getElementById('obGoalSlider').value = selectedGoal;
+                window.obUpdateSlider(selectedGoal);
             }
             
             updateOnboardingUI();
@@ -1344,14 +1428,33 @@
         }
 
         window.finishOnboarding = () => {
-            const overlay = document.getElementById('onboardingOverlay');
-            if (overlay) {
-                overlay.classList.remove('show');
-                setTimeout(() => {
-                    overlay.classList.add('hidden');
-                    overlay.classList.remove('flex');
-                }, 300); 
+            // 1. Secretly copy all onboarding data to the master inputs in the Settings tab (with fallbacks if empty)
+            if (window.obMode === 'apple') {
+                window.switchCalcTab('apple'); // Switch master app mode
+                document.getElementById('calcResting').value = document.getElementById('obResting').value || 1800;
+                document.getElementById('calcActive').value = document.getElementById('obActive').value || 500;
+            } else {
+                window.switchCalcTab('basic'); // Switch master app mode
+                document.getElementById('calcAge').value = document.getElementById('obAge').value || 30;
+                document.getElementById('calcGender').value = document.getElementById('obGender').value || 'M';
+                document.getElementById('calcWeightBasic').value = document.getElementById('obWeight').value || 150;
+                document.getElementById('calcHeight').value = document.getElementById('obHeight').value || 68;
+                document.getElementById('calcActivity').value = document.getElementById('obActivity').value || "1.2";
             }
+            
+            // Sync slider value
+            document.getElementById('calcGoalSlider').value = document.getElementById('obGoalSlider').value;
+            
+            // 2. Programmatically trigger the exact same calculation function you already built!
+            document.getElementById('recalcBtn').click();
+            
+            // 3. Close the Onboarding Overlay
+            const overlay = document.getElementById('onboardingOverlay');
+            overlay.classList.remove('show');
+            setTimeout(() => {
+                overlay.classList.add('hidden');
+                overlay.classList.remove('flex');
+            }, 300); 
             
             localStorage.setItem('mt_onboarded', 'true');
         };
