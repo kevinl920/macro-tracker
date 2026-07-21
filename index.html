@@ -973,7 +973,7 @@
 
         const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbxYk2MQbAamBncjAf6QhQFgaIL-vjLMvp7EvKWDB5xjdAdXwKb2CNnF_Oe0fs8t4eDhpA/exec";
 
-        let userGoals = JSON.parse(localStorage.getItem('mt_userGoals')) || { cals: 2000, p: 150, c: 200, f: 65, water: 8 };
+        let userGoals = JSON.parse(localStorage.getItem('mt_userGoals')) || { cals: 2000, p: 150, c: 200, f: 66, water: 8 };
         
         let allFoods = JSON.parse(localStorage.getItem('mt_allFoods')) || [];
 
@@ -1331,29 +1331,25 @@
             const final_c = Math.round((targetCals * (c_pct / 100)) / 4);
             const final_f = Math.round((targetCals * (f_pct / 100)) / 9);
 
-            // 1. UPDATE ALL POSSIBLE MEMORY SCOPES TO PREVENT GHOST OBJECTS
-            if (typeof userGoals !== 'undefined') {
-                userGoals.cals = targetCals;
-                userGoals.protein = final_p;
-                userGoals.carbs = final_c;
-                userGoals.fat = final_f;
-            }
-            window.userGoals = window.userGoals || {};
-            window.userGoals.cals = targetCals;
-            window.userGoals.protein = final_p;
-            window.userGoals.carbs = final_c;
-            window.userGoals.fat = final_f;
+            // 1. UNIVERSAL MEMORY SYNC: Saves EXACTLY to the p, c, f, and cals variables your app expects
+            const syncData = (obj) => {
+                if (!obj) return;
+                obj.cals = targetCals; 
+                obj.p = final_p;
+                obj.c = final_c;
+                obj.f = final_f;
+            };
+
+            if (typeof userGoals !== 'undefined') syncData(userGoals);
+            if (typeof window.userGoals !== 'undefined') syncData(window.userGoals);
             
-            // Hard save to localStorage so closing the app is unnecessary
+            // Hard save to localStorage so the rest of the app loads it correctly
             let lsGoals = {};
             try { lsGoals = JSON.parse(localStorage.getItem('mt_userGoals')) || {}; } catch(e) {}
-            lsGoals.cals = targetCals;
-            lsGoals.protein = final_p;
-            lsGoals.carbs = final_c;
-            lsGoals.fat = final_f;
+            syncData(lsGoals);
             localStorage.setItem('mt_userGoals', JSON.stringify(lsGoals));
 
-            // 2. BRUTE FORCE DOM OVERRIDE - Hunts down every UI label by ID and Class
+            // 2. BRUTE FORCE DOM OVERRIDE
             const forceText = (id, text, isGrams) => { 
                 const val = isGrams ? text + 'g' : text;
                 document.querySelectorAll(`#${id}, .${id}`).forEach(el => {
@@ -1362,17 +1358,20 @@
                 }); 
             };
 
-            // Force Current Daily Goals Widget
             forceText('goalCals', targetCals, false);
             forceText('displayCals', targetCals, false);
             forceText('goalCalsDisplay', targetCals, false);
             
             forceText('goalProtein', final_p, true);
+            forceText('goalPro', final_p, true);
             forceText('displayProtein', final_p, true);
+            forceText('displayPro', final_p, true);
             forceText('goalProteinDisplay', final_p, true);
             
             forceText('goalCarbs', final_c, true);
+            forceText('goalCarb', final_c, true);
             forceText('displayCarbs', final_c, true);
+            forceText('displayCarb', final_c, true);
             forceText('goalCarbsDisplay', final_c, true);
             
             forceText('goalFat', final_f, true);
@@ -1406,7 +1405,7 @@
             if (s1) { s1.value = window.sliderVal1; s1.dispatchEvent(new Event('input', { bubbles: true })); }
             if (s2) { s2.value = window.sliderVal2; s2.dispatchEvent(new Event('input', { bubbles: true })); }
 
-            // 3. TRIGGER NATIVE UI REFRESH AS A FINAL FALLBACK
+            // 3. TRIGGER NATIVE UI REFRESH
             if (typeof updateGoalsUI === 'function') updateGoalsUI();
             if (typeof updateDashboardUI === 'function') updateDashboardUI();
             if (typeof initSliderVals === 'function') initSliderVals(); 
