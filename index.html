@@ -1279,7 +1279,7 @@
         document.getElementById('recalcBtn').onclick = () => {
             const offset = parseInt(document.getElementById('calcGoalSlider').value) || 0;
             let baseTDEE = 0;
-            let p = 0, c = 0, f = 0;
+            let p_pct = 30, c_pct = 40, f_pct = 30; // Default Apple Health split
             let targetCals = 0;
 
             if (window.currentCalcMode === 'basic') {
@@ -1290,7 +1290,7 @@
                 const activity = parseFloat(document.getElementById('calcActivity').value);
 
                 if (!age || !weightLbs || !heightIn) {
-                    return showToast("Please fill in age, weight, and height.", "error");
+                    return window.showToast ? window.showToast("Please fill in age, weight, and height.", "error") : alert("Missing data");
                 }
 
                 // Mifflin-St Jeor Equation
@@ -1302,39 +1302,36 @@
                 baseTDEE = bmr * activity;
                 targetCals = Math.round(baseTDEE + offset);
                 
-                // Weight is known: 1g protein/lb, 30% fat, rest carbs
-                p = Math.round(weightLbs * 1.0);
-                f = Math.round((targetCals * 0.30) / 9);
-                c = Math.round((targetCals - (p * 4) - (f * 9)) / 4);
+                // For basic, we lock protein to 1g/lb, fat to 30%, rest carbs
+                const p_grams = Math.round(weightLbs * 1.0);
+                const f_grams = Math.round((targetCals * 0.30) / 9);
+                const c_grams = Math.round((targetCals - (p_grams * 4) - (f_grams * 9)) / 4);
+                
+                // Convert back to percentages to ensure the manual sliders add up to exactly 100%
+                p_pct = Math.round((p_grams * 4) / targetCals * 100);
+                c_pct = Math.round((c_grams * 4) / targetCals * 100);
+                f_pct = 100 - p_pct - c_pct; // Forced exactly 100%
             } else {
                 // Apple Health Mode
                 const resting = parseFloat(document.getElementById('calcResting').value);
                 const active = parseFloat(document.getElementById('calcActive').value);
 
                 if (!resting || !active) {
-                    return showToast("Please enter Resting and Active energy.", "error");
+                    return window.showToast ? window.showToast("Please enter Resting and Active energy.", "error") : alert("Missing data");
                 }
 
                 baseTDEE = resting + active;
                 targetCals = Math.round(baseTDEE + offset);
-
-                // Weight unknown: Standard 30% P / 40% C / 30% F split
-                p = Math.round((targetCals * 0.30) / 4);
-                c = Math.round((targetCals * 0.40) / 4);
-                f = Math.round((targetCals * 0.30) / 9);
+                // Apple Health split is always exactly 30/40/30
+                p_pct = 30; c_pct = 40; f_pct = 30;
             }
 
-            // 1. Math check to force exactly 100% for the sliders
-            let p_pct = Math.round((p * 4) / targetCals * 100);
-            let c_pct = Math.round((c * 4) / targetCals * 100);
-            let f_pct = 100 - p_pct - c_pct; // Guarantees the total is exactly 100%
+            // Calculate final perfect grams based on the locked percentages
+            const final_p = Math.round((targetCals * (p_pct / 100)) / 4);
+            const final_c = Math.round((targetCals * (c_pct / 100)) / 4);
+            const final_f = Math.round((targetCals * (f_pct / 100)) / 9);
 
-            // 2. Set the exact grams based on the perfect percentages so all widgets match!
-            let final_p = Math.round((targetCals * (p_pct / 100)) / 4);
-            let final_c = Math.round((targetCals * (c_pct / 100)) / 4);
-            let final_f = Math.round((targetCals * (f_pct / 100)) / 9);
-
-            // 3. BULLETPROOF MEMORY UPDATE: Set both local and global objects so no widget gets left behind
+            // 1. UPDATE BOTH SCOPES OF MEMORY (Fixes the refresh bug)
             if (typeof userGoals !== 'undefined') {
                 userGoals.cals = targetCals;
                 userGoals.protein = final_p;
@@ -1346,53 +1343,59 @@
             window.userGoals.protein = final_p;
             window.userGoals.carbs = final_c;
             window.userGoals.fat = final_f;
-
-            // 4. Update the Manual Adjustment physical DOM elements
-            const manualCalsInput = document.getElementById('setGoalCals') || 
-                                    document.getElementById('goalCals') || 
-                                    document.querySelector('#tab-settings input[type="number"]');
-                                    
-            if (manualCalsInput) {
-                manualCalsInput.value = targetCals;
-                // Dispatch input event to ensure native event listeners see the change
-                manualCalsInput.dispatchEvent(new Event('input', { bubbles: true }));
-            }
-
-            const s1 = document.getElementById('slider1');
-            const s2 = document.getElementById('slider2');
-            if (s1 && s2) {
-                s1.value = p_pct;
-                s2.value = p_pct + c_pct;
-                // CRITICAL: Fire events so native slider scripts update the text visually to 100%
-                s1.dispatchEvent(new Event('input', { bubbles: true }));
-                s2.dispatchEvent(new Event('input', { bubbles: true }));
-            }
-
-            // 5. Save everything securely to local storage
             localStorage.setItem('mt_userGoals', JSON.stringify(window.userGoals));
-            
-            // 6. Force native UI Updates across the board
+
+            // 2. TRIGGER NATIVE UI REFRESH
             if (typeof updateGoalsUI === 'function') updateGoalsUI();
             if (typeof updateDashboardUI === 'function') updateDashboardUI();
-            if (typeof initSliderVals === 'function') initSliderVals();
-            
-            // 7. DIRECT DOM OVERRIDE: Force the Current Daily Goals widget to update its text manually
-            const setText = (id, text) => { const el = document.getElementById(id); if (el) el.innerText = text; };
-            
-            // Checking the most common IDs for the Daily Goals Widget
-            setText('goalCalsDisplay', targetCals);
-            setText('goalProteinDisplay', final_p + 'g');
-            setText('goalCarbsDisplay', final_c + 'g');
-            setText('goalFatDisplay', final_f + 'g');
-            
-            setText('goalCals', targetCals);
-            setText('goalProtein', final_p + 'g');
-            setText('goalCarbs', final_c + 'g');
-            setText('goalFat', final_f + 'g');
 
-            if (typeof syncProfileToCloud === 'function') syncProfileToCloud(); 
+            // 3. OVERRIDE ANY NATIVE BUGS DIRECTLY IN THE DOM
+            const forceText = (id, text, isGrams) => { 
+                const val = isGrams ? text + 'g' : text;
+                document.querySelectorAll(`#${id}, .${id}`).forEach(el => {
+                    if (el.tagName === 'INPUT') el.value = text;
+                    else el.innerText = val;
+                }); 
+            };
+
+            // Force Current Daily Goals Widget
+            forceText('goalCals', targetCals, false);
+            forceText('displayCals', targetCals, false);
+            forceText('goalProtein', final_p, true);
+            forceText('displayProtein', final_p, true);
+            forceText('goalCarbs', final_c, true);
+            forceText('displayCarbs', final_c, true);
+            forceText('goalFat', final_f, true);
+            forceText('displayFat', final_f, true);
             
-            showToast(`Goals updated via ${window.currentCalcMode === 'basic' ? 'Basic Calculator' : 'Apple Health'}!`, "success");
+            // Force Manual Adjustment Widget to exactly 100%
+            forceText('setGoalCals', targetCals, false);
+            forceText('setCalories', targetCals, false);
+            forceText('val1', p_pct + '%', false);
+            forceText('pct1', p_pct + '%', false);
+            forceText('proteinPct', p_pct + '%', false);
+            forceText('val2', c_pct + '%', false);
+            forceText('pct2', c_pct + '%', false);
+            forceText('carbsPct', c_pct + '%', false);
+            forceText('val3', f_pct + '%', false);
+            forceText('pct3', f_pct + '%', false);
+            forceText('fatPct', f_pct + '%', false);
+            
+            // Move Manual Sliders
+            window.sliderVal1 = p_pct;
+            window.sliderVal2 = p_pct + c_pct;
+            if(typeof sliderVal1 !== 'undefined') sliderVal1 = window.sliderVal1;
+            if(typeof sliderVal2 !== 'undefined') sliderVal2 = window.sliderVal2;
+            
+            const s1 = document.getElementById('slider1');
+            const s2 = document.getElementById('slider2');
+            if (s1) s1.value = window.sliderVal1;
+            if (s2) s2.value = window.sliderVal2;
+
+            if (typeof initSliderVals === 'function') initSliderVals(); 
+            if (typeof syncProfileToCloud === 'function') syncProfileToCloud();
+
+            if (window.showToast) window.showToast(`Goals updated via ${window.currentCalcMode === 'basic' ? 'Basic Calculator' : 'Apple Health'}!`, "success");
         };
 
         document.getElementById('imagePreview').onclick = () => document.getElementById('imageInput').click();
