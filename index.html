@@ -12,7 +12,7 @@
     
     <title>Macro Tracker</title>
     <!-- App Icon for Home Screen -->
-    <link rel="apple-touch-icon" href="apple-touch-icon.png">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png?v=2">
     <link rel="icon" href="apple-touch-icon.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -583,36 +583,70 @@
                 </div>
 
                 <!-- Custom Gradient Goal Slider Section -->
-                <div class="bg-white dark:bg-gray-900 p-4 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800">
-                    <h3 class="font-bold text-gray-900 dark:text-white mb-2">TDEE Auto-Calculator</h3>
-                    <p class="text-xs text-gray-500 mb-4">Enter data from Apple Health to instantly calculate your goals.</p>
-                    <div class="space-y-3">
-                        <div class="flex items-center justify-between"><span class="text-sm">Resting Energy (kcal)</span><input type="number" id="calcResting" class="w-24 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg text-center outline-none"></div>
-                        <div class="flex items-center justify-between"><span class="text-sm">Active Energy (kcal)</span><input type="number" id="calcActive" class="w-24 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg text-center outline-none"></div>
-                        <div class="flex items-center justify-between"><span class="text-sm">Weight (lbs)</span><input type="number" id="calcWeight" class="w-24 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg text-center outline-none"></div>
-                        
-                        <div class="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
-                            <div class="flex justify-between items-end mb-3">
-                                <span class="text-sm font-bold text-gray-900 dark:text-white" id="goalModeText">Maintain Weight</span>
-                                <span class="text-xs font-bold px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded-lg" id="goalRateText">0.0 lbs/wk</span>
-                            </div>
-                            <div class="relative w-full h-6 flex items-center">
-                                <input type="range" id="calcGoalSlider" min="-750" max="750" step="1" value="0" oninput="updateGoalSlider(event)" onchange="updateGoalSlider(event)"
-                                    class="w-full appearance-none h-2 rounded-full outline-none bg-gradient-to-r from-rose-500 via-gray-200 to-emerald-500 dark:via-gray-700 cursor-pointer goal-slider">
-                            </div>
-                            <div class="flex justify-between text-[10px] text-gray-400 font-bold px-1 mt-1">
-                                <span>-750</span>
-                                <span>0</span>
-                                <span>+750</span>
-                            </div>
-                            <div id="goalWarning" class="hidden text-xs text-rose-500 font-bold text-center mt-2">
-                                <i class="ph-fill ph-warning-circle"></i> Not recommended
-                            </div>
-                        </div>
-                        
-                        <button id="recalcBtn" class="w-full bg-black dark:bg-white text-white dark:text-black font-bold py-3 rounded-xl mt-4 active:scale-95 transition-transform">Calculate & Set Goals</button>
-                    </div>
+        <div class="bg-white dark:bg-gray-900 p-4 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800">
+            
+            <!-- Tab Headers -->
+            <div class="flex p-1 bg-gray-100 dark:bg-gray-800 rounded-xl mb-4">
+                <button onclick="switchCalcTab('basic')" id="tabBtn-basic" class="flex-1 text-[11px] font-bold py-2 rounded-lg bg-white dark:bg-gray-700 shadow-sm text-gray-900 dark:text-white transition-all">TDEE Calculator (Basic)</button>
+                <button onclick="switchCalcTab('apple')" id="tabBtn-apple" class="flex-1 text-[11px] font-bold py-2 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-all">Apple Health (Accurate)</button>
+            </div>
+
+            <!-- TAB 1: Basic TDEE -->
+            <div id="calcContent-basic" class="space-y-3 block">
+                <p class="text-[11px] text-gray-500 mb-3 leading-relaxed"><b>Total Daily Energy Expenditure (TDEE)</b> is an estimate of how many calories you burn per day based on your body metrics and lifestyle.</p>
+                
+                <div class="flex gap-2">
+                    <select id="calcGender" class="flex-1 p-2 bg-gray-50 dark:bg-gray-800 rounded-xl text-sm outline-none border border-transparent focus:border-emerald-500">
+                        <option value="M">Male</option>
+                        <option value="F">Female</option>
+                    </select>
+                    <input type="number" id="calcAge" placeholder="Age" class="w-20 p-2 bg-gray-50 dark:bg-gray-800 rounded-xl text-center text-sm outline-none border border-transparent focus:border-emerald-500">
                 </div>
+                
+                <div class="flex gap-2">
+                    <input type="number" id="calcWeightBasic" placeholder="Weight (lbs)" class="flex-1 p-2 bg-gray-50 dark:bg-gray-800 rounded-xl text-center text-sm outline-none border border-transparent focus:border-emerald-500">
+                    <input type="number" id="calcHeight" placeholder="Height (in)" class="flex-1 p-2 bg-gray-50 dark:bg-gray-800 rounded-xl text-center text-sm outline-none border border-transparent focus:border-emerald-500">
+                </div>
+                
+                <select id="calcActivity" class="w-full p-2 bg-gray-50 dark:bg-gray-800 rounded-xl text-[13px] outline-none border border-transparent focus:border-emerald-500 text-gray-700 dark:text-gray-300">
+                    <option value="1.2">Sedentary (Little to no exercise)</option>
+                    <option value="1.375">Lightly Active (1-3 days/wk)</option>
+                    <option value="1.55">Moderately Active (3-5 days/wk)</option>
+                    <option value="1.725">Very Active (6-7 days/wk)</option>
+                </select>
+            </div>
+
+            <!-- TAB 2: Apple Health -->
+            <div id="calcContent-apple" class="space-y-3 hidden">
+                <p class="text-[11px] text-gray-500 mb-3 leading-relaxed">Open the <b>Health app</b>, go to <b>Activity</b>, and find your 30-day or 6-month average for both Resting and Active Energy.</p>
+                
+                <div class="flex items-center justify-between"><span class="text-sm font-medium">Resting Energy (kcal)</span><input type="number" id="calcResting" class="w-24 p-2 bg-gray-50 dark:bg-gray-800 rounded-xl text-center outline-none border border-transparent focus:border-emerald-500"></div>
+                <div class="flex items-center justify-between"><span class="text-sm font-medium">Active Energy (kcal)</span><input type="number" id="calcActive" class="w-24 p-2 bg-gray-50 dark:bg-gray-800 rounded-xl text-center outline-none border border-transparent focus:border-emerald-500"></div>
+            </div>
+
+            <!-- Shared Slider for both modes -->
+            <div class="mt-5 pt-4 border-t border-gray-100 dark:border-gray-800">
+                <div class="flex justify-between items-end mb-3">
+                    <span class="text-sm font-bold text-gray-900 dark:text-white" id="goalModeText">Maintain Weight</span>
+                    <span class="text-xs font-bold px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded-lg" id="goalRateText">0.0 lbs/wk</span>
+                </div>
+                <div class="relative w-full h-6 flex items-center">
+                    <input type="range" id="calcGoalSlider" min="-750" max="750" step="1" value="0" oninput="updateGoalSlider(event)" onchange="updateGoalSlider(event)"
+                        class="w-full appearance-none h-2 rounded-full outline-none bg-gradient-to-r from-rose-500 via-gray-200 to-emerald-500 dark:via-gray-700 cursor-pointer goal-slider">
+                </div>
+                <div class="flex justify-between text-[10px] text-gray-400 font-bold px-1 mt-1">
+                    <span>-750</span>
+                    <span>0</span>
+                    <span>+750</span>
+                </div>
+                <div id="goalWarning" class="hidden text-xs text-rose-500 font-bold text-center mt-2">
+                    <i class="ph-fill ph-warning-circle"></i> Not recommended
+                </div>
+            </div>
+            
+            <button id="recalcBtn" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl mt-5 shadow-lg shadow-emerald-600/30 active:scale-95 transition-all">Calculate & Set Goals</button>
+        </div>
+        <!-- End of TDEE Section -->
 
                 <div class="bg-white dark:bg-gray-900 p-4 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800">
                     <h3 class="font-bold text-gray-900 dark:text-white mb-4">Manual Adjustment</h3>
@@ -1180,34 +1214,95 @@
             localStorage.setItem('mt_userGoals', JSON.stringify(userGoals));
             updateGoalsUI();
             updateDashboardUI();
-            window.syncProfileToCloud(); 
+            window.syncProfileToCloud(); // Phase 3 trigger
             showToast("Custom goals saved locally!", "success");
         };
 
-        document.getElementById('recalcBtn').onclick = () => {
-            const restingCals = parseFloat(document.getElementById('calcResting').value);
-            const activeCals = parseFloat(document.getElementById('calcActive').value);
-            const weightLbs = parseFloat(document.getElementById('calcWeight').value);
-            const goalMod = parseFloat(document.getElementById('calcGoalSlider').value); 
+        window.currentCalcMode = 'basic';
+        window.switchCalcTab = (mode) => {
+            window.currentCalcMode = mode;
+            const btnBasic = document.getElementById('tabBtn-basic');
+            const btnApple = document.getElementById('tabBtn-apple');
+            const contentBasic = document.getElementById('calcContent-basic');
+            const contentApple = document.getElementById('calcContent-apple');
 
-            if (!restingCals || !activeCals || !weightLbs) {
-                return showToast("Please enter Resting Energy, Active Energy, and Weight.", "error");
+            if(mode === 'basic') {
+                btnBasic.className = "flex-1 text-[11px] font-bold py-2 rounded-lg bg-white dark:bg-gray-700 shadow-sm text-gray-900 dark:text-white transition-all";
+                btnApple.className = "flex-1 text-[11px] font-bold py-2 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-all";
+                contentBasic.classList.remove('hidden');
+                contentApple.classList.add('hidden');
+            } else {
+                btnApple.className = "flex-1 text-[11px] font-bold py-2 rounded-lg bg-white dark:bg-gray-700 shadow-sm text-gray-900 dark:text-white transition-all";
+                btnBasic.className = "flex-1 text-[11px] font-bold py-2 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-all";
+                contentApple.classList.remove('hidden');
+                contentBasic.classList.add('hidden');
+            }
+        };
+
+        document.getElementById('recalcBtn').onclick = () => {
+            const offset = parseInt(document.getElementById('calcGoalSlider').value) || 0;
+            let baseTDEE = 0;
+            let p = 0, c = 0, f = 0;
+
+            if (window.currentCalcMode === 'basic') {
+                const age = parseInt(document.getElementById('calcAge').value);
+                const weightLbs = parseFloat(document.getElementById('calcWeightBasic').value);
+                const heightIn = parseFloat(document.getElementById('calcHeight').value);
+                const gender = document.getElementById('calcGender').value;
+                const activity = parseFloat(document.getElementById('calcActivity').value);
+
+                if (!age || !weightLbs || !heightIn) {
+                    return window.showToast("Please fill in age, weight, and height.", "error");
+                }
+
+                // Mifflin-St Jeor Equation
+                const weightKg = weightLbs * 0.453592;
+                const heightCm = heightIn * 2.54;
+                let bmr = (10 * weightKg) + (6.25 * heightCm) - (5 * age);
+                bmr += (gender === 'M') ? 5 : -161;
+
+                baseTDEE = bmr * activity;
+                const targetCals = Math.round(baseTDEE + offset);
+                
+                // Weight is known: 1g protein/lb, 30% fat, rest carbs
+                p = Math.round(weightLbs * 1.0);
+                f = Math.round((targetCals * 0.30) / 9);
+                c = Math.round((targetCals - (p * 4) - (f * 9)) / 4);
+                
+                userGoals.cals = targetCals;
+            } else {
+                // Apple Health Mode
+                const resting = parseFloat(document.getElementById('calcResting').value);
+                const active = parseFloat(document.getElementById('calcActive').value);
+
+                if (!resting || !active) {
+                    return window.showToast("Please enter Resting and Active energy.", "error");
+                }
+
+                baseTDEE = resting + active;
+                const targetCals = Math.round(baseTDEE + offset);
+
+                // Weight unknown: Standard 30% P / 40% C / 30% F split
+                p = Math.round((targetCals * 0.30) / 4);
+                c = Math.round((targetCals * 0.40) / 4);
+                f = Math.round((targetCals * 0.30) / 9);
+
+                userGoals.cals = targetCals;
             }
 
-            const tdee = restingCals + activeCals;
-            const targetCals = Math.round(tdee + goalMod);
-            const proteinG = Math.round(weightLbs * 0.8);
-            const fatG = Math.round((targetCals * 0.25) / 9);
-            const remainingCals = targetCals - ((proteinG * 4) + (fatG * 9));
-            const carbsG = Math.max(0, Math.round(remainingCals / 4));
+            // Fallback safety to prevent negative macros
+            userGoals.protein = p > 0 ? p : 0;
+            userGoals.carbs = c > 0 ? c : 0;
+            userGoals.fat = f > 0 ? f : 0;
 
-            userGoals = { cals: targetCals, p: proteinG, c: carbsG, f: fatG, water: userGoals.water || 8 };
             localStorage.setItem('mt_userGoals', JSON.stringify(userGoals));
             updateGoalsUI();
             updateDashboardUI();
             initSliderVals(); 
-            window.syncProfileToCloud(); 
-            showToast("Goals updated from Apple Health data!", "success");
+            
+            if(window.syncProfileToCloud) window.syncProfileToCloud(); // Phase 3 trigger
+            
+            window.showToast(`Goals updated via ${window.currentCalcMode === 'basic' ? 'Basic Calculator' : 'Apple Health'}!`, "success");
         };
 
         document.getElementById('imagePreview').onclick = () => document.getElementById('imageInput').click();
