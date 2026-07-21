@@ -1435,6 +1435,64 @@
                 }
             }
         }
+// STREAMING_CHUNK: Previous Slide Logic & Swipe Gestures
+        window.prevOnboardingSlide = () => {
+            if (currentObSlide <= 0) return; // Can't go back past the first slide
+
+            // Slide current out to the right
+            const currentEl = document.getElementById(`ob-slide-${currentObSlide}`);
+            if(currentEl) {
+                currentEl.classList.remove('translate-x-0', 'opacity-100');
+                currentEl.classList.add('translate-x-full', 'opacity-0');
+            }
+            
+            currentObSlide--;
+            
+            // Slide previous in from the left
+            const prevEl = document.getElementById(`ob-slide-${currentObSlide}`);
+            if(prevEl) {
+                prevEl.classList.remove('-translate-x-full', 'opacity-0');
+                prevEl.classList.add('translate-x-0', 'opacity-100');
+            }
+
+            if (currentObSlide < 4) {
+                 document.getElementById('ob-next-btn').innerText = "Continue";
+            }
+            
+            updateOnboardingUI();
+        };
+
+        // Swipe Detection Variables
+        let obTouchStartX = 0;
+        let obTouchEndX = 0;
+        const obSwipeThreshold = 50; // Minimum distance (px) for a swipe
+
+        // Attach Listeners to the container
+        const obContainer = document.getElementById('ob-container');
+        
+        obContainer.addEventListener('touchstart', e => {
+            obTouchStartX = e.changedTouches[0].screenX;
+        }, { passive: true });
+
+        obContainer.addEventListener('touchend', e => {
+            obTouchEndX = e.changedTouches[0].screenX;
+            handleObSwipe();
+        }, { passive: true });
+
+        function handleObSwipe() {
+            const distance = obTouchStartX - obTouchEndX;
+            
+            // Swiped Left (Go to Next)
+            if (distance > obSwipeThreshold) {
+                if (currentObSlide < totalObSlides - 1) {
+                    nextOnboardingSlide();
+                }
+            }
+            // Swiped Right (Go to Previous)
+            if (distance < -obSwipeThreshold) {
+                prevOnboardingSlide();
+            }
+        }
 
         window.finishOnboarding = () => {
             // 1. Secretly copy all onboarding data to the master inputs in the Settings tab (with fallbacks if empty)
