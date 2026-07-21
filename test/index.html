@@ -1510,13 +1510,13 @@
         }
 
         window.finishOnboarding = () => {
-            // 1. Secretly copy all onboarding data to the master inputs in the Settings tab (with fallbacks if empty)
+            // 1. Secretly copy all onboarding data to the master inputs in the Settings tab
             if (window.obMode === 'apple') {
-                window.switchCalcTab('apple'); // Switch master app mode
+                window.switchCalcTab('apple'); 
                 document.getElementById('calcResting').value = document.getElementById('obResting').value || 1800;
                 document.getElementById('calcActive').value = document.getElementById('obActive').value || 500;
             } else {
-                window.switchCalcTab('basic'); // Switch master app mode
+                window.switchCalcTab('basic'); 
                 document.getElementById('calcAge').value = document.getElementById('obAge').value || 30;
                 document.getElementById('calcGender').value = document.getElementById('obGender').value || 'M';
                 document.getElementById('calcWeightBasic').value = document.getElementById('obWeight').value || 150;
@@ -1524,13 +1524,19 @@
                 document.getElementById('calcActivity').value = document.getElementById('obActivity').value || "1.2";
             }
             
-            // Sync slider value
-            document.getElementById('calcGoalSlider').value = document.getElementById('obGoalSlider').value;
+            // 2. Sync slider value AND manually trigger the label update function!
+            const newSliderValue = document.getElementById('obGoalSlider').value;
+            document.getElementById('calcGoalSlider').value = newSliderValue;
             
-            // 2. Programmatically trigger the exact same calculation function you already built!
+            // STREAMING_CHUNK: Force the settings UI to update its visual label
+            if (typeof window.updateSliderLabel === 'function') {
+                window.updateSliderLabel(newSliderValue);
+            }
+            
+            // 3. Programmatically trigger the exact same calculation function
             document.getElementById('recalcBtn').click();
             
-            // 3. Close the Onboarding Overlay
+            // 4. Close the Onboarding Overlay
             const overlay = document.getElementById('onboardingOverlay');
             overlay.classList.remove('show');
             setTimeout(() => {
