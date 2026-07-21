@@ -1331,7 +1331,7 @@
             const final_c = Math.round((targetCals * (c_pct / 100)) / 4);
             const final_f = Math.round((targetCals * (f_pct / 100)) / 9);
 
-            // 1. UPDATE BOTH SCOPES OF MEMORY (Fixes the refresh bug)
+            // 1. UPDATE ALL POSSIBLE MEMORY SCOPES TO PREVENT GHOST OBJECTS
             if (typeof userGoals !== 'undefined') {
                 userGoals.cals = targetCals;
                 userGoals.protein = final_p;
@@ -1343,13 +1343,17 @@
             window.userGoals.protein = final_p;
             window.userGoals.carbs = final_c;
             window.userGoals.fat = final_f;
-            localStorage.setItem('mt_userGoals', JSON.stringify(window.userGoals));
+            
+            // Hard save to localStorage so closing the app is unnecessary
+            let lsGoals = {};
+            try { lsGoals = JSON.parse(localStorage.getItem('mt_userGoals')) || {}; } catch(e) {}
+            lsGoals.cals = targetCals;
+            lsGoals.protein = final_p;
+            lsGoals.carbs = final_c;
+            lsGoals.fat = final_f;
+            localStorage.setItem('mt_userGoals', JSON.stringify(lsGoals));
 
-            // 2. TRIGGER NATIVE UI REFRESH
-            if (typeof updateGoalsUI === 'function') updateGoalsUI();
-            if (typeof updateDashboardUI === 'function') updateDashboardUI();
-
-            // 3. OVERRIDE ANY NATIVE BUGS DIRECTLY IN THE DOM
+            // 2. BRUTE FORCE DOM OVERRIDE - Hunts down every UI label by ID and Class
             const forceText = (id, text, isGrams) => { 
                 const val = isGrams ? text + 'g' : text;
                 document.querySelectorAll(`#${id}, .${id}`).forEach(el => {
@@ -1361,37 +1365,50 @@
             // Force Current Daily Goals Widget
             forceText('goalCals', targetCals, false);
             forceText('displayCals', targetCals, false);
+            forceText('goalCalsDisplay', targetCals, false);
+            
             forceText('goalProtein', final_p, true);
             forceText('displayProtein', final_p, true);
+            forceText('goalProteinDisplay', final_p, true);
+            
             forceText('goalCarbs', final_c, true);
             forceText('displayCarbs', final_c, true);
+            forceText('goalCarbsDisplay', final_c, true);
+            
             forceText('goalFat', final_f, true);
             forceText('displayFat', final_f, true);
+            forceText('goalFatDisplay', final_f, true);
             
             // Force Manual Adjustment Widget to exactly 100%
             forceText('setGoalCals', targetCals, false);
             forceText('setCalories', targetCals, false);
+            
             forceText('val1', p_pct + '%', false);
             forceText('pct1', p_pct + '%', false);
             forceText('proteinPct', p_pct + '%', false);
+            
             forceText('val2', c_pct + '%', false);
             forceText('pct2', c_pct + '%', false);
             forceText('carbsPct', c_pct + '%', false);
+            
             forceText('val3', f_pct + '%', false);
             forceText('pct3', f_pct + '%', false);
             forceText('fatPct', f_pct + '%', false);
             
-            // Move Manual Sliders
+            // Move Manual Sliders and trigger Native App events
             window.sliderVal1 = p_pct;
             window.sliderVal2 = p_pct + c_pct;
-            if(typeof sliderVal1 !== 'undefined') sliderVal1 = window.sliderVal1;
-            if(typeof sliderVal2 !== 'undefined') sliderVal2 = window.sliderVal2;
+            if(typeof sliderVal1 !== 'undefined') sliderVal1 = p_pct;
+            if(typeof sliderVal2 !== 'undefined') sliderVal2 = p_pct + c_pct;
             
             const s1 = document.getElementById('slider1');
             const s2 = document.getElementById('slider2');
-            if (s1) s1.value = window.sliderVal1;
-            if (s2) s2.value = window.sliderVal2;
+            if (s1) { s1.value = window.sliderVal1; s1.dispatchEvent(new Event('input', { bubbles: true })); }
+            if (s2) { s2.value = window.sliderVal2; s2.dispatchEvent(new Event('input', { bubbles: true })); }
 
+            // 3. TRIGGER NATIVE UI REFRESH AS A FINAL FALLBACK
+            if (typeof updateGoalsUI === 'function') updateGoalsUI();
+            if (typeof updateDashboardUI === 'function') updateDashboardUI();
             if (typeof initSliderVals === 'function') initSliderVals(); 
             if (typeof syncProfileToCloud === 'function') syncProfileToCloud();
 
