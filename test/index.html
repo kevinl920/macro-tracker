@@ -1,0 +1,2761 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
+    
+    <!-- PWA Meta Tags for iOS -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="MacroTrack">
+    <link rel="apple-touch-icon" href="https://via.placeholder.com/192/3b82f6/ffffff?text=MT">
+    
+    <title>Macro Tracker</title>
+    <!-- App Icon for Home Screen -->
+    <link rel="apple-touch-icon" href="apple-touch-icon.png?v=2">
+    <link rel="icon" href="apple-touch-icon.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <!-- Phase 1: Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
+    
+    <style>
+        /* Native Document Scrolling */
+        html, body {
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        .tab-content { display: none; }
+        .tab-content.active { display: block !important; animation: fadeIn 0.2s ease-in-out !important; }
+        .nav-item.active { color: #3b82f6 !important; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        
+        #toast { visibility: hidden; transform: translateY(-100%); transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55); }
+        #toast.show { visibility: visible; transform: translateY(0); }
+
+        #nutritionModal.show { opacity: 1; }
+        #nutritionModal.show #nutritionCard { transform: scale(1); }
+        
+        /* Friend Modal Animations */
+        #friendFoodsModal.show { opacity: 1; }
+        #friendFoodsModal.show #friendFoodsCard { transform: scale(1); }
+
+        @keyframes draw-line {
+            0% { stroke-dashoffset: 400; }
+            100% { stroke-dashoffset: 0; }
+        }
+        .animate-draw {
+            stroke-dasharray: 400;
+            stroke-dashoffset: 400;
+            animation: draw-line 2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+        @keyframes float-smoke {
+            0% { transform: translateY(5px) scale(0.8); opacity: 0; }
+            50% { opacity: 0.8; }
+            100% { transform: translateY(-15px) scale(1.1); opacity: 0; }
+        }
+        .animate-smoke { animation: float-smoke 2.5s infinite ease-in; }
+        .animate-smoke-delay { animation: float-smoke 2.5s infinite ease-in 1.25s; }
+        
+        @keyframes gallop {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            25% { transform: translateY(-3px) rotate(-4deg); }
+            75% { transform: translateY(2px) rotate(4deg); }
+        }
+        .animate-gallop { animation: gallop 0.6s infinite ease-in-out; }
+        
+        @keyframes scroll-marquee {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+        .animate-marquee { 
+            display: flex; 
+            width: 200%; /* Double width for seamless loop */
+            animation: scroll-marquee 8s linear infinite; 
+        }
+
+        #onboardingOverlay { display: none; }
+        #onboardingOverlay.flex { display: flex; }
+        #onboardingOverlay.show { opacity: 1; pointer-events: auto; }
+        .ob-slide { transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.4s ease; }
+        
+        /* Custom Checkbox Placeholder Styling */
+        .ob-checkbox-label {
+            display: flex; align-items: center; gap: 12px;
+            padding: 16px; border-radius: 16px;
+            border: 2px solid transparent;
+            background: #f9fafb; cursor: pointer;
+            transition: all 0.2s;
+        }
+        .dark .ob-checkbox-label { background: #1f2937; }
+        .ob-checkbox-input:checked + .ob-checkbox-label {
+            border-color: #10b981;
+            background: #ecfdf5;
+        }
+        .dark .ob-checkbox-input:checked + .ob-checkbox-label {
+            background: rgba(16, 185, 129, 0.1);
+        }
+
+        /* Custom Goal Slider Thumb */
+        .goal-slider::-webkit-slider-thumb {
+            -webkit-appearance: none; appearance: none; width: 24px; height: 24px;
+            background: #ffffff; border: 2px solid #e5e7eb; border-radius: 50%;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2); cursor: grab;
+        }
+        .goal-slider::-moz-range-thumb {
+            width: 24px; height: 24px; background: #ffffff; border: 2px solid #e5e7eb;
+            border-radius: 50%; box-shadow: 0 2px 5px rgba(0,0,0,0.2); cursor: grab;
+        }
+        @media (prefers-color-scheme: dark) {
+            .goal-slider::-webkit-slider-thumb { border-color: #374151; background: #1f2937; }
+            .goal-slider::-moz-range-thumb { border-color: #374151; background: #1f2937; }
+        }
+
+        .sage-mini-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background-color: #e0f2fe; /* Light blue background */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid #bae6fd;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .sage-mini-btn:active {
+            transform: scale(0.95);
+        }
+        .dark .sage-mini-btn {
+            background-color: #0c4a6e;
+            border-color: #075985;
+        }
+
+        .sage-mini {
+            position: relative;
+            width: 20px;
+            height: 14px;
+        }
+        /* Shell */
+        .sage-mini-shell {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 14px;
+            height: 10px;
+            background-color: #8c423f;
+            border: 1px solid #5a2624;
+            border-radius: 8px 10px 4px 6px;
+            z-index: 3;
+        }
+        /* Head */
+        .sage-mini-head {
+            position: absolute;
+            top: 5px;
+            right: 0;
+            width: 8px;
+            height: 6px;
+            background-color: #a3c065;
+            border: 1px solid #7a9350;
+            border-radius: 4px 5px 5px 4px;
+            z-index: 2;
+        }
+        /* Eye */
+        .sage-mini-head::after {
+            content: '';
+            position: absolute;
+            top: 1.5px;
+            right: 2px;
+            width: 1.5px;
+            height: 1.5px;
+            background-color: #111;
+            border-radius: 50%;
+        }
+        /* Front Flipper */
+        .sage-mini-flipper {
+            position: absolute;
+            bottom: -2px;
+            right: 6px;
+            width: 4px;
+            height: 6px;
+            background-color: #a3c065;
+            border: 1px solid #7a9350;
+            border-radius: 2px 2px 4px 4px;
+            transform: rotate(-15deg);
+            z-index: 4;
+        }
+        /* Back Flipper */
+        .sage-mini-flipper-back {
+            position: absolute;
+            bottom: -1px;
+            left: 3px;
+            width: 3.5px;
+            height: 5px;
+            background-color: #8fa857;
+            border: 1px solid #6b8243;
+            border-radius: 2px 2px 4px 4px;
+            transform: rotate(10deg);
+            z-index: 1;
+        }
+
+        .sage-avatar-container {
+            position: relative; width: 85px; height: 60px; display: inline-block;
+        }
+        .sage-head {
+            position: absolute; top: 24px; right: 0px; width: 34px; height: 24px;
+            background-color: #a3c065; border-radius: 40% 50% 50% 40% / 50% 50% 50% 50%;
+            z-index: 2; border: 2px solid #7a9350; transform-origin: left center;
+        }
+        .sage-eye {
+            position: absolute; top: 5px; right: 8px; width: 7px; height: 9px;
+            background-color: #2a2a2a; border-radius: 50%;
+        }
+        .sage-eye::after {
+            content: ''; position: absolute; top: 1.5px; right: 1.5px; width: 3px; height: 3px;
+            background-color: #ffffff; border-radius: 50%;
+        }
+        .sage-smile {
+            position: absolute; bottom: 4px; right: 4px; width: 10px; height: 5px;
+            border-bottom: 1.5px solid #2a2a2a; border-right: 1.5px solid transparent;
+            border-left: 1.5px solid transparent; border-radius: 50%; transform: rotate(-10deg);
+        }
+        .sage-shell {
+            position: absolute; top: 10px; right: 18px; width: 58px; height: 36px;
+            background-color: #8c423f; border-radius: 45px 50px 15px 20px; z-index: 3;
+            border: 2px solid #5a2624; border-bottom: 3.5px solid #5a2624;
+            box-shadow: inset 4px 4px 5px rgba(255,255,255,0.1), 0 3px 4px -2px rgba(0,0,0,0.15); overflow: hidden;
+        }
+        .sage-shell::after {
+            content: ''; position: absolute; top: -4px; left: 15px; width: 25px; height: 20px;
+            border: 2px solid rgba(90, 38, 36, 0.4); border-radius: 50%; box-shadow: 20px 8px 0 -2px rgba(90, 38, 36, 0.3);
+        }
+        .sage-belly {
+            position: absolute; top: 40px; right: 26px; width: 44px; height: 10px;
+            background-color: #e8d087; border-radius: 5px 5px 20px 20px; border-bottom: 2px solid #c4a956; z-index: 2;
+        }
+        .sage-flipper-front {
+            position: absolute; top: 37px; right: 25px; width: 16px; height: 22px;
+            background-color: #a3c065; border: 2px solid #7a9350; border-radius: 6px 4px 50% 50% / 12px 8px 60% 40%;
+            z-index: 4; transform: rotate(-25deg); transform-origin: top center;
+            background-image: radial-gradient(circle at 35% 55%, #7a9350 1.5px, transparent 2px), radial-gradient(circle at 65% 45%, #7a9350 1px, transparent 1.5px), radial-gradient(circle at 50% 75%, #7a9350 1.5px, transparent 2px);
+        }
+        .sage-flipper-back {
+            position: absolute; top: 38px; right: 56px; width: 14px; height: 16px;
+            background-color: #8fa857; border: 2px solid #6b8243; border-radius: 4px 4px 50% 50%;
+            z-index: 1; transform: rotate(15deg);
+        }
+        
+        /* Simple Chat Bubble Animations */
+        @keyframes chatPop { 0% { opacity: 0; transform: translateY(10px) scale(0.95); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
+        .chat-bubble { animation: chatPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+        /* ========================================= */
+        /* ONBOARDING ANIMATIONS                     */
+        /* ========================================= */
+        @keyframes draw-line {
+            0% { stroke-dashoffset: 400; }
+            100% { stroke-dashoffset: 0; }
+        }
+        .animate-draw {
+            stroke-dasharray: 400;
+            stroke-dashoffset: 400;
+            animation: draw-line 2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+        @keyframes float-smoke {
+            0% { transform: translateY(5px) scale(0.8); opacity: 0; }
+            50% { opacity: 0.8; }
+            100% { transform: translateY(-15px) scale(1.1); opacity: 0; }
+        }
+        .animate-smoke { animation: float-smoke 2.5s infinite ease-in; }
+        .animate-smoke-delay { animation: float-smoke 2.5s infinite ease-in 1.25s; }
+        
+        @keyframes gallop {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            25% { transform: translateY(-3px) rotate(-4deg); }
+            75% { transform: translateY(2px) rotate(4deg); }
+        }
+        .animate-gallop { animation: gallop 0.6s infinite ease-in-out; }
+        
+        @keyframes scroll-marquee {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+        .animate-marquee { 
+            display: flex; 
+            width: 200%; /* Double width for seamless loop */
+            animation: scroll-marquee 8s linear infinite; 
+        }
+
+        #onboardingOverlay { display: none; }
+        #onboardingOverlay.flex { display: flex; }
+        #onboardingOverlay.show { opacity: 1; pointer-events: auto; }
+        .ob-slide { transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.4s ease; }
+        
+        /* Custom Checkbox Placeholder Styling */
+        .ob-checkbox-label {
+            display: flex; align-items: center; gap: 12px;
+            padding: 16px; border-radius: 16px;
+            border: 2px solid transparent;
+            background: #f9fafb; cursor: pointer;
+            transition: all 0.2s;
+        }
+        .dark .ob-checkbox-label { background: #1f2937; }
+        .ob-checkbox-input:checked + .ob-checkbox-label {
+            border-color: #10b981;
+            background: #ecfdf5;
+        }
+        .dark .ob-checkbox-input:checked + .ob-checkbox-label {
+            background: rgba(16, 185, 129, 0.1);
+        }
+        /* ========================================= */
+    </style>
+</head>
+
+<body class="bg-gray-50 dark:bg-gray-950 font-sans text-gray-800 dark:text-gray-100 antialiased selection:bg-blue-200 dark:selection:bg-blue-900 transition-colors duration-300 w-full min-h-screen">
+
+    <!-- ========================================= -->
+    <!-- ONBOARDING FULL-SCREEN OVERLAY            -->
+    <!-- ========================================= -->
+    <div id="onboardingOverlay" class="fixed inset-0 bg-white dark:bg-gray-950 z-[999] opacity-0 pointer-events-none transition-opacity duration-300 flex-col font-sans">
+        <!-- Slides Container -->
+        <div class="flex-1 relative overflow-hidden" id="ob-container">
+            <!-- Slide 1: Welcome & Chart -->
+            <div class="ob-slide absolute inset-0 flex flex-col items-center justify-center p-8 translate-x-0 opacity-100" id="ob-slide-0">
+                <div class="w-full max-w-sm">
+                    <h1 class="text-3xl font-black text-gray-900 dark:text-white mb-4 tracking-tight leading-tight">Welcome!</h1>
+                    <p class="text-gray-500 dark:text-gray-400 text-lg mb-10 leading-relaxed">MacroTrack can turn your health goals into reality.</p>
+                    
+                    <!-- Animated Graph -->
+                    <div class="w-full h-48 bg-gray-50 dark:bg-gray-900 rounded-3xl p-6 relative border border-gray-100 dark:border-gray-800 shadow-inner">
+                        <svg viewBox="0 0 200 100" class="w-full h-full overflow-visible drop-shadow-md">
+                            <!-- Background Grid -->
+                            <line x1="0" y1="25" x2="200" y2="25" stroke="currentColor" class="text-gray-200 dark:text-gray-800" stroke-width="1" stroke-dasharray="4" />
+                            <line x1="0" y1="50" x2="200" y2="50" stroke="currentColor" class="text-gray-200 dark:text-gray-800" stroke-width="1" stroke-dasharray="4" />
+                            <line x1="0" y1="75" x2="200" y2="75" stroke="currentColor" class="text-gray-200 dark:text-gray-800" stroke-width="1" stroke-dasharray="4" />
+                            
+                            <!-- The Trend Line (High -> Dip -> Bounce -> Goal) -->
+                            <path d="M 10 20 Q 40 20, 60 55 T 110 45 T 160 85 T 190 80" fill="none" stroke="#10b981" stroke-width="4.5" stroke-linecap="round" class="animate-draw" />
+                            
+                            <!-- Goal Dot (Fades in at the end of the line animation) -->
+                            <circle cx="190" cy="80" r="6" fill="#10b981" class="opacity-0 transition-opacity duration-500 delay-[2000ms]" style="animation: fadeIn 0.5s forwards 2s" />
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Slide 2: The Problem & Scrolling Scenarios -->
+            <div class="ob-slide absolute inset-0 flex flex-col items-center justify-center p-8 translate-x-full opacity-0" id="ob-slide-1">
+                <div class="w-full max-w-sm">
+                    <h2 class="text-2xl font-black text-gray-900 dark:text-white mb-4 tracking-tight">Sometimes life gets in the way.</h2>
+                    <p class="text-gray-500 dark:text-gray-400 text-sm mb-8 leading-relaxed">
+                        We know. Dinner with friends. A fridge Frankenstein meal. Hyperlocal cuisine on your journeys through a Mongolian village.<br><br><b>Not everything has a nutrition label.</b>
+                    </p>
+                    
+                    <!-- Infinite Scrolling Marquee -->
+                    <div class="w-full h-32 bg-gray-50 dark:bg-gray-900 rounded-3xl overflow-hidden relative border border-gray-100 dark:border-gray-800 flex items-center shadow-inner">
+                        <!-- Left/Right Fade Gradients -->
+                        <div class="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-gray-50 dark:from-gray-900 to-transparent z-10"></div>
+                        <div class="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-gray-50 dark:from-gray-900 to-transparent z-10"></div>
+                        
+                        <!-- Scrolling Track (Duplicated for seamless loop) -->
+                        <div class="animate-marquee gap-16 px-8 items-center justify-around absolute left-0">
+                            <!-- Set 1 -->
+                            <div class="flex flex-col items-center justify-center shrink-0">
+                                <i class="ph-duotone ph-users-three text-4xl text-blue-500 animate-pulse"></i>
+                                <span class="text-[9px] font-bold text-gray-400 mt-2 uppercase tracking-widest">Friends</span>
+                            </div>
+                            <div class="flex flex-col items-center justify-center shrink-0 relative">
+                                <svg class="w-5 h-5 absolute -top-4 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                                    <path class="animate-smoke" d="M8 12 Q10 6, 8 0" />
+                                    <path class="animate-smoke-delay" d="M16 12 Q14 6, 16 0" />
+                                </svg>
+                                <i class="ph-duotone ph-bowl-food text-4xl text-emerald-600"></i>
+                                <span class="text-[9px] font-bold text-gray-400 mt-2 uppercase tracking-widest">Mystery</span>
+                            </div>
+                            <div class="flex flex-col items-center justify-center shrink-0">
+                                <i class="ph-duotone ph-horse text-4xl text-amber-600 animate-gallop"></i>
+                                <span class="text-[9px] font-bold text-gray-400 mt-2 uppercase tracking-widest">Journeys</span>
+                            </div>
+                            <!-- Set 2 -->
+                            <div class="flex flex-col items-center justify-center shrink-0">
+                                <i class="ph-duotone ph-users-three text-4xl text-blue-500 animate-pulse"></i>
+                                <span class="text-[9px] font-bold text-gray-400 mt-2 uppercase tracking-widest">Friends</span>
+                            </div>
+                            <div class="flex flex-col items-center justify-center shrink-0 relative">
+                                <svg class="w-5 h-5 absolute -top-4 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                                    <path class="animate-smoke" d="M8 12 Q10 6, 8 0" />
+                                    <path class="animate-smoke-delay" d="M16 12 Q14 6, 16 0" />
+                                </svg>
+                                <i class="ph-duotone ph-bowl-food text-4xl text-emerald-600"></i>
+                                <span class="text-[9px] font-bold text-gray-400 mt-2 uppercase tracking-widest">Mystery</span>
+                            </div>
+                            <div class="flex flex-col items-center justify-center shrink-0">
+                                <i class="ph-duotone ph-horse text-4xl text-amber-600 animate-gallop"></i>
+                                <span class="text-[9px] font-bold text-gray-400 mt-2 uppercase tracking-widest">Journeys</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Slide 3: The Solution -->
+            <div class="ob-slide absolute inset-0 flex flex-col items-center justify-center p-8 translate-x-full opacity-0" id="ob-slide-2">
+                <div class="w-full max-w-sm text-center">
+                    <div class="w-20 h-20 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <i class="ph-fill ph-magic-wand text-4xl text-emerald-500"></i>
+                    </div>
+                    <h2 class="text-3xl font-black text-gray-900 dark:text-white mb-4 tracking-tight leading-tight">We simplify the tracking.</h2>
+                    <p class="text-gray-500 dark:text-gray-400 text-lg mb-8 leading-relaxed">So you can get back to doing.</p>
+                </div>
+            </div>
+
+            <!-- Slide 4: Build Profile -->
+            <div class="ob-slide absolute inset-0 flex flex-col items-start justify-center p-8 translate-x-full opacity-0 overflow-y-auto" id="ob-slide-3">
+                <div class="w-full max-w-sm mx-auto">
+                    <h2 class="text-2xl font-black text-gray-900 dark:text-white mb-2 tracking-tight">Let's build your profile.</h2>
+                    <p class="text-gray-500 dark:text-gray-400 text-sm mb-6">Placeholder for your custom questions! (I will add them here when you are ready).</p>
+                    
+                    <div class="space-y-3">
+                        <div>
+                            <input type="checkbox" id="q1" class="ob-checkbox-input hidden">
+                            <label for="q1" class="ob-checkbox-label">
+                                <div class="w-6 h-6 rounded-full border-2 border-gray-300 dark:border-gray-600 flex items-center justify-center shrink-0">
+                                    <i class="ph-bold ph-check text-transparent transition-colors"></i>
+                                </div>
+                                <span class="font-medium text-sm text-gray-800 dark:text-gray-200">I want to build muscle</span>
+                            </label>
+                        </div>
+                        <div>
+                            <input type="checkbox" id="q2" class="ob-checkbox-input hidden">
+                            <label for="q2" class="ob-checkbox-label">
+                                <div class="w-6 h-6 rounded-full border-2 border-gray-300 dark:border-gray-600 flex items-center justify-center shrink-0">
+                                    <i class="ph-bold ph-check text-transparent transition-colors"></i>
+                                </div>
+                                <span class="font-medium text-sm text-gray-800 dark:text-gray-200">I want to lean out</span>
+                            </label>
+                        </div>
+                        <style> 
+                            .ob-checkbox-input:checked + .ob-checkbox-label i { color: #10b981; }
+                            .ob-checkbox-input:checked + .ob-checkbox-label .w-6 { border-color: #10b981; }
+                        </style>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer Controls -->
+        <div class="p-8 flex justify-between items-center pb-12">
+            <div class="flex gap-2" id="ob-dots">
+                <div class="w-2 h-2 rounded-full bg-gray-800 dark:bg-white transition-all duration-300" id="dot-0"></div>
+                <div class="w-2 h-2 rounded-full bg-gray-300 dark:bg-gray-700 transition-all duration-300" id="dot-1"></div>
+                <div class="w-2 h-2 rounded-full bg-gray-300 dark:bg-gray-700 transition-all duration-300" id="dot-2"></div>
+                <div class="w-2 h-2 rounded-full bg-gray-300 dark:bg-gray-700 transition-all duration-300" id="dot-3"></div>
+            </div>
+            <button onclick="nextOnboardingSlide()" id="ob-next-btn" class="bg-gray-900 dark:bg-white text-white dark:text-black font-bold py-3 px-8 rounded-full shadow-lg active:scale-95 transition-transform">
+                Continue
+            </button>
+        </div>
+    </div>
+    <!-- ========================================= -->
+
+    <!-- Phase 1: Firebase Auth Welcome Screen Overlay -->
+    <div id="authOverlay" class="fixed inset-0 bg-white dark:bg-gray-950 z-[300] hidden flex-col items-center justify-center p-6 transition-opacity duration-300">
+        <i class="ph-fill ph-chart-pie-slice text-6xl text-blue-500 mb-4 animate-bounce"></i>
+        <h1 class="text-3xl font-black text-gray-900 dark:text-white mb-2 tracking-tight">MacroTrack</h1>
+        
+        <!-- Startup Loading State -->
+        <div id="authLoadingState" class="flex flex-col items-center mt-4">
+            <i class="ph ph-spinner animate-spin text-3xl text-blue-500 mb-2"></i>
+            <p class="text-gray-500 dark:text-gray-400 text-sm font-medium">Checking connection...</p>
+        </div>
+
+        <!-- Action Buttons -->
+        <div id="authActionButtons" class="hidden flex-col items-center w-full mt-2">
+            <p class="text-center text-gray-500 dark:text-gray-400 mb-6 max-w-xs text-sm">Sign in to save your logs to the cloud and connect with friends.</p>
+            
+            <div class="w-full max-w-xs flex flex-col gap-2 mb-4">
+                <div class="relative">
+                    <i class="ph-fill ph-envelope absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                    <input type="email" id="emailInput" placeholder="Email address" class="w-full bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl py-3 pl-10 pr-4 text-sm outline-none border-2 border-transparent focus:border-blue-500">
+                </div>
+                <div class="relative">
+                    <i class="ph-fill ph-lock absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                    <input type="password" id="passwordInput" placeholder="Password (min 6 chars)" class="w-full bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl py-3 pl-10 pr-4 text-sm outline-none border-2 border-transparent focus:border-blue-500">
+                </div>
+                <button onclick="signInWithEmail()" id="emailLoginBtn" class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl active:scale-95 transition-transform text-sm shadow-md">Sign In / Register</button>
+            </div>
+
+            <button onclick="continueAsGuest()" class="text-xs font-bold text-gray-400 dark:text-gray-500 p-2 active:scale-95 transition-transform mt-2">
+                Continue Offline (Local Storage)
+            </button>
+        </div>
+    </div>
+
+    <!-- NEW Phase 2: Username Selection Modal -->
+    <div id="usernameModal" class="fixed inset-0 bg-white dark:bg-gray-950 z-[350] hidden flex-col items-center justify-center p-6 transition-opacity duration-300">
+        <i class="ph-fill ph-at text-6xl text-blue-500 mb-4 animate-bounce"></i>
+        <h1 class="text-3xl font-black text-gray-900 dark:text-white mb-2 tracking-tight">Pick a Username</h1>
+        <p class="text-center text-gray-500 dark:text-gray-400 mb-8 max-w-xs text-sm">This unique handle is how your friends will find you on MacroTrack.</p>
+        
+        <div class="relative w-full max-w-xs mb-2">
+            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-lg">@</span>
+            <input type="text" id="usernameInput" class="w-full bg-gray-100 dark:bg-gray-800 border-2 border-transparent focus:border-blue-500 rounded-2xl py-4 pl-10 pr-4 outline-none font-bold text-gray-900 dark:text-white placeholder-gray-400" placeholder="username" oninput="document.getElementById('usernameStatus').innerText=''">
+        </div>
+        <p id="usernameStatus" class="text-xs font-bold text-red-500 h-4 mb-4"></p>
+        
+        <button onclick="claimUsername()" id="claimUsernameBtn" class="w-full max-w-xs bg-blue-600 text-white font-bold py-4 rounded-2xl mb-4 flex items-center justify-center gap-2 active:scale-95 transition-transform">
+            Claim Username <i class="ph-bold ph-arrow-right text-xl"></i>
+        </button>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="fixed left-4 right-4 z-[100] bg-gray-900 dark:bg-white text-white dark:text-gray-900 p-4 rounded-2xl shadow-xl flex items-center gap-3" style="top: calc(env(safe-area-inset-top) + 1rem);">
+        <i id="toastIcon" class="ph ph-info text-2xl text-blue-400"></i>
+        <div id="toastMsg" class="font-medium text-sm">Message</div>
+    </div>
+
+    <!-- Nutrition Facts Modal -->
+    <div id="nutritionModal" class="fixed inset-0 bg-black/70 z-[200] hidden flex-col items-center justify-center p-4 backdrop-blur-sm opacity-0 transition-opacity duration-200">
+        <div class="bg-white dark:bg-gray-900 text-black dark:text-white p-5 w-full max-w-xs rounded-lg shadow-2xl relative border-2 border-black dark:border-white font-sans scale-95 transition-transform duration-200" id="nutritionCard">
+            <button onclick="closeModal()" class="absolute -top-4 -right-4 w-10 h-10 bg-gray-200 dark:bg-gray-800 border-2 border-white dark:border-gray-900 rounded-full flex items-center justify-center text-gray-800 dark:text-gray-200 shadow-lg active:scale-90 transition-transform"><i class="ph ph-x font-bold text-lg"></i></button>
+            
+            <h1 class="text-3xl font-black mb-1 border-b-[10px] border-black dark:border-white pb-1 leading-none tracking-tighter">Nutrition Facts</h1>
+            <p class="font-bold text-sm mb-1 leading-tight" id="nfName">Food Name</p>
+            <p class="text-xs italic text-gray-600 dark:text-gray-400 mb-2 leading-tight" id="nfDesc"></p>
+            
+            <div class="border-b-[5px] border-black dark:border-white pb-1 flex justify-between items-end">
+                <div>
+                    <p class="font-bold text-sm leading-none mb-1">Amount Per Serving</p>
+                    <h2 class="text-3xl font-black leading-none">Calories</h2>
+                </div>
+                <h2 class="text-4xl font-black leading-none" id="nfCals">0</h2>
+            </div>
+            
+            <div class="text-right text-[10px] font-bold py-1 border-b border-black dark:border-white">% Daily Goal*</div>
+            
+            <div class="text-sm border-b border-black dark:border-white py-1 flex justify-between">
+                <span class="font-bold">Total Fat <span class="font-normal" id="nfFat">0g</span></span>
+                <span class="font-bold" id="nfFatPct">0%</span>
+            </div>
+            <div class="text-sm border-b border-black dark:border-white py-1 flex justify-between">
+                <span class="font-bold">Total Carbohydrate <span class="font-normal" id="nfCarbs">0g</span></span>
+                <span class="font-bold" id="nfCarbsPct">0%</span>
+            </div>
+            <div class="text-sm border-b border-dashed border-gray-400 dark:border-gray-600 py-1 pl-4 flex justify-between">
+                <span>Dietary Fiber <span id="nfFiber">0g</span></span>
+                <span class="font-bold" id="nfFiberPct">0%</span>
+            </div>
+            <div class="text-sm border-b border-black dark:border-white py-1 pl-4 flex justify-between">
+                <span>Total Sugars <span id="nfSugar">0g</span></span>
+                <span class="font-bold" id="nfSugarPct">0%</span>
+            </div>
+            <div class="text-sm border-b-[5px] border-black dark:border-white py-1 flex justify-between">
+                <span class="font-bold">Protein <span class="font-normal" id="nfProtein">0g</span></span>
+                <span class="font-bold" id="nfProteinPct">0%</span>
+            </div>
+            <p class="text-[9px] text-gray-500 dark:text-gray-400 leading-tight mt-2">* The % Daily Goal tells you how much a nutrient in this serving contributes to your personal daily macro targets.</p>
+        </div>
+    </div>
+    
+    <!-- Friend's Daily Foods Modal -->
+    <div id="friendFoodsModal" class="fixed inset-0 bg-black/70 z-[250] hidden flex-col items-center justify-center p-4 backdrop-blur-sm opacity-0 transition-opacity duration-200">
+        <div class="bg-white dark:bg-gray-900 text-black dark:text-white p-5 w-full max-w-sm rounded-3xl shadow-2xl relative border border-gray-200 dark:border-gray-800 font-sans scale-95 transition-transform duration-200 flex flex-col max-h-[80vh]" id="friendFoodsCard">
+            <button onclick="closeFriendModal()" class="absolute -top-4 -right-4 w-10 h-10 bg-gray-200 dark:bg-gray-800 border-2 border-white dark:border-gray-900 rounded-full flex items-center justify-center text-gray-800 dark:text-gray-200 shadow-lg active:scale-90 transition-transform"><i class="ph ph-x font-bold text-lg"></i></button>
+            <h1 class="text-2xl font-black mb-1 tracking-tighter" id="ffName">@username's Log</h1>
+            <p class="text-xs text-gray-500 mb-4">Foods eaten today</p>
+            <div id="ffList" class="flex-1 overflow-y-auto space-y-3 pr-2 hide-scrollbar">
+                <!-- Injected via JS -->
+            </div>
+        </div>
+    </div>
+    
+    <!-- Header -->
+    <header class="fixed top-0 w-full bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg border-b border-gray-200 dark:border-gray-800 px-6 pb-3 z-50 flex justify-between items-center transition-colors duration-300" style="padding-top: max(env(safe-area-inset-top), 1rem);">
+        <h1 class="text-xl font-bold text-gray-900 dark:text-white tracking-tight" id="headerTitle">Log Food</h1>
+        
+        <div class="flex items-center gap-3">
+            <!-- Sage Avatar Button (Replaced with Minimalist Leaf) -->
+            <button onclick="openSageChat()" aria-label="Ask Sage" class="relative group flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-br from-emerald-50/80 to-emerald-100/50 dark:from-emerald-900/20 dark:to-emerald-800/10 hover:bg-emerald-100 dark:hover:bg-emerald-800/30 transition-all duration-300 border border-emerald-200/60 dark:border-emerald-700/50 shadow-sm active:scale-90">
+                <!-- Custom Minimalist Leaf SVG with Subtle Fill -->
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" class="w-[22px] h-[22px] text-emerald-700 dark:text-emerald-400 stroke-current group-hover:scale-105 transition-transform duration-300">
+                    <!-- Outer leaf curve WITH the subtle soft fill -->
+                    <path d="M19.5 3.5C19.5 3.5 21 11 16.5 15.5C12 20 5.5 20 5.5 20C5.5 20 5 14 9.5 9.5C14 5 19.5 3.5 19.5 3.5Z" class="fill-emerald-600/15 dark:fill-emerald-400/20" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    <!-- Sweeping center vein and stem (no fill) -->
+                    <path d="M4 22C6 19 11 12 18.5 4.5" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <!-- Subtle online indicator -->
+                <span class="absolute top-0 right-0 w-2.5 h-2.5 bg-emerald-500 border-2 border-white dark:border-gray-950 rounded-full animate-pulse shadow-sm"></span>
+            </button>
+            
+            <div class="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-blue-600 dark:text-blue-300 font-bold text-xs uppercase cursor-pointer" id="userAvatar" onclick="document.querySelector('[data-target=\'tab-settings\']').click()">U</div>
+        </div>
+    </header>
+
+    <!-- Chat Overlay -->
+    <div id="sageChatOverlay" class="fixed top-0 left-0 w-full h-full z-[400] bg-gray-50 dark:bg-gray-950 flex flex-col transform translate-y-full transition-transform duration-300">
+        
+        <!-- Header -->
+        <div class="bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg p-4 pb-3 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between shadow-sm transition-colors shrink-0 z-50" style="padding-top: max(env(safe-area-inset-top), 3.5rem);">
+            
+            <div class="flex items-center gap-3">
+                <!-- Premium Minimalist Leaf Avatar -->
+                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-50 to-emerald-100/50 dark:from-emerald-900/30 dark:to-emerald-800/20 flex items-center justify-center border border-emerald-100 dark:border-emerald-800/50">
+                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-emerald-700 dark:text-emerald-400 stroke-current">
+                        <path d="M19.5 3.5C19.5 3.5 21 11 16.5 15.5C12 20 5.5 20 5.5 20C5.5 20 5 14 9.5 9.5C14 5 19.5 3.5 19.5 3.5Z" class="fill-emerald-600/15 dark:fill-emerald-400/20" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M4 22C6 19 11 12 18.5 4.5" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+                <div>
+                    <h2 class="text-lg font-bold text-gray-900 dark:text-white leading-tight">Sage</h2>
+                    <p class="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium tracking-wide uppercase flex items-center gap-1.5 mt-0.5">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Online
+                    </p>
+                </div>
+            </div>
+            
+            <button onclick="closeSageChat()" class="w-9 h-9 rounded-full bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 flex items-center justify-center transition-colors active:scale-90">
+                <i class="ph-bold ph-x text-lg"></i>
+            </button>
+        </div>
+        
+        <!-- Chat Area (Fixed scrolling with min-h-0 and overscroll-contain) -->
+        <div id="sageChatArea" class="flex-1 overflow-y-auto p-4 bg-gray-50 dark:bg-gray-950 pb-4 min-h-0 overscroll-none touch-pan-y" style="-webkit-overflow-scrolling: touch;">
+            <!-- Messages will be injected here dynamically via JS -->
+        </div>
+
+        <!-- Input Bar -->
+        <div class="p-3 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 shadow-[0_-4px_10px_rgba(0,0,0,0.05)] dark:shadow-none shrink-0" style="padding-bottom: max(env(safe-area-inset-bottom, 12px), 12px);">
+            <div class="flex gap-2 items-center">
+                <div class="flex-1 relative">
+                    <input type="text" id="sageChatInput" placeholder="Ask Sage something..." class="w-full bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white rounded-2xl py-3 pl-4 pr-10 outline-none border border-transparent focus:border-emerald-500 text-sm">
+                </div>
+                <button onclick="sendSageMessage()" class="w-12 h-12 shrink-0 bg-emerald-500 text-white rounded-full flex items-center justify-center active:scale-90 transition-transform shadow-md">
+                    <i class="ph-fill ph-paper-plane-right text-xl"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <main class="w-full pt-24 pb-24 relative z-0" id="mainContent">
+        
+        <!-- ==================== TAB 1: LOG FOOD ==================== -->
+        <div id="tab-log" class="tab-content active">
+            <!-- Calorie Card fixed nicely underneath the top header -->
+            <div class="sticky z-40 p-4 bg-gray-50/90 dark:bg-gray-950/90 backdrop-blur pb-2 transition-colors duration-300" style="top: calc(max(env(safe-area-inset-top), 1rem) + 40px);">
+                <div class="bg-white dark:bg-gray-900 p-4 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800 transition-colors duration-300">
+                    <div class="flex justify-between items-end mb-2">
+                        <div>
+                            <p class="text-xs text-gray-400 dark:text-gray-500 font-semibold uppercase tracking-wider">Today's Calories</p>
+                            <h2 class="text-2xl font-black text-gray-900 dark:text-white"><span id="floatCals">0</span> <span class="text-sm font-medium text-gray-400 dark:text-gray-500">/ <span id="floatGoalCals">2000</span></span></h2>
+                        </div>
+                    </div>
+                    <div class="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-2 mb-4">
+                        <div id="calsBar" class="bg-blue-500 h-2 rounded-full transition-all duration-500" style="width: 0%"></div>
+                    </div>
+                    <div class="flex justify-between text-sm">
+                        <div class="text-center"><p class="text-gray-400 dark:text-gray-500 text-xs">Protein</p><p class="font-bold"><span id="floatP">0</span>g</p></div>
+                        <div class="text-center"><p class="text-gray-400 dark:text-gray-500 text-xs">Carbs</p><p class="font-bold"><span id="floatC">0</span>g</p></div>
+                        <div class="text-center"><p class="text-gray-400 dark:text-gray-500 text-xs">Fat</p><p class="font-bold"><span id="floatF">0</span>g</p></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="px-4 pb-4 space-y-4">
+                <input type="file" id="imageInput" accept="image/*" class="hidden">
+                <div id="imagePreview" class="w-full aspect-[4/3] bg-white dark:bg-gray-900 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-3xl flex flex-col items-center justify-center cursor-pointer bg-center bg-cover shadow-sm transition-all active:scale-95">
+                    <div id="cameraIconContainer" class="flex flex-col items-center bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm p-4 rounded-2xl transition-colors duration-300">
+                        <i class="ph ph-camera-plus text-5xl text-blue-500 mb-2"></i>
+                        <span class="text-gray-600 dark:text-gray-400 font-medium">Tap to snap a photo (Optional)</span>
+                    </div>
+                </div>
+                
+                <div class="bg-white dark:bg-gray-900 rounded-3xl p-1 shadow-sm border border-gray-100 dark:border-gray-800 transition-colors duration-300">
+                    <input type="text" id="foodName" placeholder="Food Name (Optional)" class="w-full p-4 bg-transparent outline-none font-medium border-b border-gray-50 dark:border-gray-800 text-gray-900 dark:text-white">
+                    <textarea id="foodDesc" placeholder="Any specific ingredients or portion size? (Optional - more info improves accuracy!)" class="w-full p-4 bg-transparent outline-none text-sm text-gray-600 dark:text-gray-400 h-20 resize-none"></textarea>
+                </div>
+                
+                <button id="analyzeBtn" class="w-full bg-blue-600 text-white font-bold py-4 rounded-2xl shadow-lg shadow-blue-200 dark:shadow-none transition-all active:scale-95 disabled:bg-blue-300 dark:disabled:bg-blue-800 disabled:shadow-none flex justify-center items-center gap-2">
+                    <i class="ph ph-sparkle text-xl"></i> Analyze & Log
+                </button>
+            </div>
+        </div>
+
+        <!-- ==================== TAB 2: DASHBOARD ==================== -->
+        <div id="tab-dash" class="tab-content">
+            <div class="p-4 space-y-4 mt-2">
+                
+                <!-- Dashboard Top Card (Ring & Macros) -->
+                <div class="bg-white dark:bg-gray-900 p-4 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800 flex items-center gap-4">
+                    <div class="w-24 h-24 relative shrink-0">
+                        <canvas id="macroChart"></canvas>
+                    </div>
+                    <div class="flex-1 grid grid-cols-3 gap-2 text-center">
+                        <div>
+                            <p class="text-[10px] text-gray-500 uppercase font-bold mb-1">Pro</p>
+                            <p class="font-black text-rose-500 text-lg leading-none"><span id="dashP">0</span>g</p>
+                            <p class="text-[10px] text-gray-400 font-bold mt-1">/ <span id="dashGoalP">0</span>g</p>
+                        </div>
+                        <div>
+                            <p class="text-[10px] text-gray-500 uppercase font-bold mb-1">Carb</p>
+                            <p class="font-black text-amber-500 text-lg leading-none"><span id="dashC">0</span>g</p>
+                            <p class="text-[10px] text-gray-400 font-bold mt-1">/ <span id="dashGoalC">0</span>g</p>
+                        </div>
+                        <div>
+                            <p class="text-[10px] text-gray-500 uppercase font-bold mb-1">Fat</p>
+                            <p class="font-black text-emerald-500 text-lg leading-none"><span id="dashF">0</span>g</p>
+                            <p class="text-[10px] text-gray-400 font-bold mt-1">/ <span id="dashGoalF">0</span>g</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Fiber Tracker -->
+                <div class="bg-white dark:bg-gray-900 p-4 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800 flex justify-between items-center">
+                    <div>
+                        <h3 class="font-bold text-gray-900 dark:text-white">Fiber Intake</h3>
+                        <p class="text-xs text-gray-500">Goal: <span id="fiberGoal">0</span>g</p>
+                    </div>
+                    <div class="relative w-12 h-12">
+                        <svg class="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+                            <path class="text-gray-100 dark:text-gray-800" stroke-width="4" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                            <path id="fiberCircle" class="text-blue-500 transition-all duration-1000" stroke-dasharray="0, 100" stroke-width="4" stroke-linecap="round" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                        </svg>
+                        <div class="absolute inset-0 flex items-center justify-center font-bold text-xs"><span id="fiberEaten">0</span></div>
+                    </div>
+                </div>
+
+                <!-- Water Tracker -->
+                <div class="bg-white dark:bg-gray-900 p-4 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800">
+                    <div class="flex justify-between items-center mb-3">
+                        <div>
+                            <h3 class="font-bold text-gray-900 dark:text-white">Water</h3>
+                            <p class="text-xs text-gray-500">Daily Hydration</p>
+                        </div>
+                        <div class="text-2xl font-black text-blue-500"><span id="waterCount">0</span> <span class="text-sm font-medium text-gray-400">glasses</span></div>
+                    </div>
+                    <div class="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-3 mb-4 overflow-hidden">
+                        <div id="waterBar" class="bg-blue-400 h-full rounded-full transition-all duration-500 w-0"></div>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="addWater(-1)" class="flex-1 py-2 bg-gray-50 dark:bg-gray-800 rounded-xl font-bold active:scale-95 transition-transform">-</button>
+                        <button onclick="addWater(1)" class="flex-[3] py-2 bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 rounded-xl font-bold active:scale-95 transition-transform">+ Add Glass</button>
+                    </div>
+                </div>
+
+                <!-- Weekly Chart & Streak -->
+                <div class="bg-white dark:bg-gray-900 p-4 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-bold text-gray-900 dark:text-white">This Week</h3>
+                        <div class="flex items-center gap-1 text-xs font-bold text-orange-500 bg-orange-50 dark:bg-orange-900/20 px-2 py-1 rounded-lg">
+                            <i class="ph-fill ph-fire"></i> <span id="streakCountText">0</span> Day Streak
+                        </div>
+                    </div>
+                    <div class="h-40 w-full">
+                        <canvas id="weeklyChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== TAB 3: HISTORY ==================== -->
+        <div id="tab-history" class="tab-content">
+            <div class="p-4" id="historyList">
+                <!-- History items injected here by JS -->
+            </div>
+        </div>
+
+        <!-- ==================== TAB 3.5: SOCIAL ==================== -->
+        <div id="tab-social" class="tab-content">
+            <div class="p-4 space-y-6 mt-2">
+                
+                <!-- Privacy Notice -->
+                <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-3xl border border-blue-100 dark:border-blue-900/50">
+                    <div class="flex gap-3 items-center mb-2">
+                        <i class="ph-fill ph-info text-blue-500 text-xl"></i>
+                        <h3 class="font-bold text-blue-900 dark:text-blue-100">Privacy Notice</h3>
+                    </div>
+                    <p class="text-xs text-blue-700 dark:text-blue-300">By accepting a friend request, your <b>daily calorie goals</b> and <b>foods eaten today</b> will be shared with them. They will not see past days or weight data.</p>
+                </div>
+
+                <!-- Add Friend Input -->
+                <div class="bg-white dark:bg-gray-900 p-4 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800">
+                    <h3 class="font-bold text-gray-900 dark:text-white mb-3">Add Friend</h3>
+                    <div class="flex gap-2">
+                        <div class="relative flex-1">
+                            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold">@</span>
+                            <input type="text" id="friendSearchInput" placeholder="username" class="w-full p-3 pl-8 bg-gray-50 dark:bg-gray-800 rounded-xl outline-none text-gray-900 dark:text-white border border-transparent focus:border-blue-500 lowercase">
+                        </div>
+                        <button onclick="sendFriendRequest()" id="addFriendBtn" class="bg-blue-600 text-white px-4 rounded-xl font-bold active:scale-95 transition-transform"><i class="ph-bold ph-user-plus"></i></button>
+                    </div>
+                </div>
+                
+                <!-- Pending Requests -->
+                <div id="pendingRequestsContainer" class="hidden">
+                    <h3 class="font-bold text-gray-900 dark:text-white mb-3 text-sm uppercase tracking-wider text-gray-500">Pending Requests</h3>
+                    <div id="pendingRequestsList" class="space-y-2"></div>
+                </div>
+
+                <!-- Global Feed -->
+                <div>
+                    <h3 class="font-bold text-gray-900 dark:text-white mb-3 text-sm uppercase tracking-wider text-gray-500">Friends Feed</h3>
+                    <div id="friendsFeedList" class="space-y-3">
+                        <div class="text-center text-sm text-gray-400 py-4">Log in to view your friends feed.</div>
+                    </div>
+                </div>
+                
+            </div>
+        </div>
+
+        <!-- ==================== TAB 4: SETTINGS ==================== -->
+        <div id="tab-settings" class="tab-content">
+            <div class="p-4 space-y-6 pb-8 mt-2">
+                <!-- NEW: Replay Onboarding Button -->
+                <button onclick="startOnboarding()" class="w-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 font-bold py-3 rounded-xl active:scale-95 transition-transform border border-emerald-200 dark:border-emerald-800 flex items-center justify-center gap-2">
+                    <i class="ph-bold ph-play"></i> Replay Onboarding Flow
+                </button>
+
+                <!-- User Info -->
+                <div class="bg-white dark:bg-gray-900 p-4 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800">
+                    <h3 class="font-bold text-gray-900 dark:text-white mb-2">Profile</h3>
+                <!-- Phase 1: Firebase Auth Card -->
+                <div class="bg-white dark:bg-gray-900 p-4 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800">
+                    <h3 class="font-bold text-gray-900 dark:text-white mb-2">Cloud Account</h3>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-4" id="accountStatusText">Not signed in. Data is stored locally on this device.</p>
+                    <button onclick="window.signOut()" id="signOutBtn" class="hidden w-full bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 font-bold py-3 rounded-xl active:scale-95 transition-transform">Sign Out</button>
+                    <button onclick="showAuthScreen()" id="signInSettingsBtn" class="w-full bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 font-bold py-3 rounded-xl active:scale-95 transition-transform">Sign In / Create Account</button>
+                </div>
+
+                <div class="bg-white dark:bg-gray-900 p-4 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800">
+                    <h3 class="font-bold text-gray-900 dark:text-white mb-2">Profile Name</h3>
+                    <div class="flex gap-2">
+                        <input type="text" id="setDisplayName" placeholder="Enter your name" class="flex-1 p-3 bg-gray-50 dark:bg-gray-800 rounded-xl outline-none text-gray-900 dark:text-white border border-transparent focus:border-blue-500">
+                        <button onclick="saveProfileName()" class="bg-blue-600 text-white px-4 rounded-xl font-bold active:scale-95 transition-transform">Save</button>
+                    </div>
+                </div>
+                <div class="bg-white dark:bg-gray-900 p-4 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800">
+                    <h3 class="font-bold text-gray-900 dark:text-white mb-4">Current Daily Goals</h3>
+                    <div class="grid grid-cols-4 gap-2 text-center text-sm">
+                        <div class="bg-gray-50 dark:bg-gray-800 p-2 rounded-xl"><p class="text-xs text-gray-500">Cals</p><p class="font-bold"><span id="setGoalCals">0</span></p></div>
+                        <div class="bg-rose-50 dark:bg-rose-900/20 p-2 rounded-xl"><p class="text-xs text-rose-500">Pro</p><p class="font-bold text-rose-600 dark:text-rose-400"><span id="setGoalP">0</span>g</p></div>
+                        <div class="bg-amber-50 dark:bg-amber-900/20 p-2 rounded-xl"><p class="text-xs text-amber-500">Carb</p><p class="font-bold text-amber-600 dark:text-amber-400"><span id="setGoalC">0</span>g</p></div>
+                        <div class="bg-emerald-50 dark:bg-emerald-900/20 p-2 rounded-xl"><p class="text-xs text-emerald-500">Fat</p><p class="font-bold text-emerald-600 dark:text-emerald-400"><span id="setGoalF">0</span>g</p></div>
+                    </div>
+                </div>
+
+                <!-- Custom Gradient Goal Slider Section -->
+        <div class="bg-white dark:bg-gray-900 p-4 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800">
+            
+            <!-- Tab Headers -->
+            <div class="flex p-1 bg-gray-100 dark:bg-gray-800 rounded-xl mb-4">
+                <button onclick="switchCalcTab('basic')" id="tabBtn-basic" class="flex-1 text-[11px] font-bold py-2 rounded-lg bg-white dark:bg-gray-700 shadow-sm text-gray-900 dark:text-white transition-all">TDEE Calculator (Basic)</button>
+                <button onclick="switchCalcTab('apple')" id="tabBtn-apple" class="flex-1 text-[11px] font-bold py-2 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-all">Apple Health (Accurate)</button>
+            </div>
+
+            <!-- TAB 1: Basic TDEE -->
+            <div id="calcContent-basic" class="space-y-3 block">
+                <p class="text-[11px] text-gray-500 mb-3 leading-relaxed"><b>Total Daily Energy Expenditure (TDEE)</b> is an estimate of how many calories you burn per day based on your body metrics and lifestyle.</p>
+                
+                <div class="flex gap-2">
+                    <select id="calcGender" class="flex-1 p-2 bg-gray-50 dark:bg-gray-800 rounded-xl text-sm outline-none border border-transparent focus:border-emerald-500">
+                        <option value="M">Male</option>
+                        <option value="F">Female</option>
+                    </select>
+                    <input type="number" id="calcAge" placeholder="Age" class="w-20 p-2 bg-gray-50 dark:bg-gray-800 rounded-xl text-center text-sm outline-none border border-transparent focus:border-emerald-500">
+                </div>
+                
+                <div class="flex gap-2">
+                    <input type="number" id="calcWeightBasic" placeholder="Weight (lbs)" class="flex-1 p-2 bg-gray-50 dark:bg-gray-800 rounded-xl text-center text-sm outline-none border border-transparent focus:border-emerald-500">
+                    <input type="number" id="calcHeight" placeholder="Height (in)" class="flex-1 p-2 bg-gray-50 dark:bg-gray-800 rounded-xl text-center text-sm outline-none border border-transparent focus:border-emerald-500">
+                </div>
+                
+                <select id="calcActivity" class="w-full p-2 bg-gray-50 dark:bg-gray-800 rounded-xl text-[13px] outline-none border border-transparent focus:border-emerald-500 text-gray-700 dark:text-gray-300">
+                    <option value="1.2">Sedentary (Little to no exercise)</option>
+                    <option value="1.375">Lightly Active (1-3 days/wk)</option>
+                    <option value="1.55">Moderately Active (3-5 days/wk)</option>
+                    <option value="1.725">Very Active (6-7 days/wk)</option>
+                </select>
+            </div>
+
+            <!-- TAB 2: Apple Health -->
+            <div id="calcContent-apple" class="space-y-3 hidden">
+                <p class="text-[11px] text-gray-500 mb-3 leading-relaxed">Open the <b>Health app</b>, go to <b>Activity</b>, and find your 30-day or 6-month average for both Resting and Active Energy.</p>
+                
+                <div class="flex items-center justify-between"><span class="text-sm font-medium">Resting Energy (kcal)</span><input type="number" id="calcResting" class="w-24 p-2 bg-gray-50 dark:bg-gray-800 rounded-xl text-center outline-none border border-transparent focus:border-emerald-500"></div>
+                <div class="flex items-center justify-between"><span class="text-sm font-medium">Active Energy (kcal)</span><input type="number" id="calcActive" class="w-24 p-2 bg-gray-50 dark:bg-gray-800 rounded-xl text-center outline-none border border-transparent focus:border-emerald-500"></div>
+            </div>
+
+            <!-- Shared Slider for both modes -->
+            <div class="mt-5 pt-4 border-t border-gray-100 dark:border-gray-800">
+                <div class="flex justify-between items-end mb-3">
+                    <span class="text-sm font-bold text-gray-900 dark:text-white" id="goalModeText">Maintain Weight</span>
+                    <span class="text-xs font-bold px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded-lg" id="goalRateText">0.0 lbs/wk</span>
+                </div>
+                <div class="relative w-full h-6 flex items-center">
+                    <input type="range" id="calcGoalSlider" min="-750" max="750" step="1" value="0" oninput="updateGoalSlider(event)" onchange="updateGoalSlider(event)"
+                        class="w-full appearance-none h-2 rounded-full outline-none bg-gradient-to-r from-rose-500 via-gray-200 to-emerald-500 dark:via-gray-700 cursor-pointer goal-slider">
+                </div>
+                <div class="flex justify-between text-[10px] text-gray-400 font-bold px-1 mt-1">
+                    <span>-750</span>
+                    <span>0</span>
+                    <span>+750</span>
+                </div>
+                <div id="goalWarning" class="hidden text-xs text-rose-500 font-bold text-center mt-2">
+                    <i class="ph-fill ph-warning-circle"></i> Not recommended
+                </div>
+            </div>
+            
+            <button id="recalcBtn" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl mt-5 shadow-lg shadow-emerald-600/30 active:scale-95 transition-all">Calculate & Set Goals</button>
+        </div>
+        <!-- End of TDEE Section -->
+
+                <div class="bg-white dark:bg-gray-900 p-4 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800">
+                    <h3 class="font-bold text-gray-900 dark:text-white mb-4">Manual Adjustment</h3>
+                    <div class="flex items-center justify-between mb-4"><span class="text-sm font-medium">Daily Calories</span><input type="number" id="manualCals" class="w-24 p-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-center outline-none font-bold"></div>
+                    <div class="flex items-center justify-between mb-6"><span class="text-sm font-medium">Daily Water (Cups)</span><input type="number" id="manualWater" class="w-24 p-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-center outline-none font-bold"></div>
+                    <div class="mb-2"><span class="text-sm font-medium">Macro Split</span></div>
+                    <div class="relative w-full h-8 mb-8">
+                        <div class="absolute top-1/2 -translate-y-1/2 w-full h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden flex" id="macroSliderTrack">
+                            <div id="macroBarP" class="h-full bg-rose-500 pointer-events-none" style="width: 30%"></div>
+                            <div id="macroBarC" class="h-full bg-amber-500 pointer-events-none" style="width: 40%"></div>
+                            <div id="macroBarF" class="h-full bg-emerald-500 pointer-events-none" style="width: 30%"></div>
+                        </div>
+                        <div id="macroThumb1" class="absolute top-1/2 -translate-y-1/2 w-6 h-6 bg-white border-2 border-gray-300 rounded-full shadow-md cursor-grab active:cursor-grabbing active:scale-110 transition-transform z-10" style="left: 30%; transform: translate(-50%, -50%);"></div>
+                        <div id="macroThumb2" class="absolute top-1/2 -translate-y-1/2 w-6 h-6 bg-white border-2 border-gray-300 rounded-full shadow-md cursor-grab active:cursor-grabbing active:scale-110 transition-transform z-10" style="left: 70%; transform: translate(-50%, -50%);"></div>
+                    </div>
+                    <div class="flex justify-between text-xs text-center mb-6">
+                        <div class="w-1/3"><p class="text-rose-500 font-bold mb-1">Protein</p><p class="font-bold text-lg"><span id="sliderValP">30</span>%</p><p class="text-gray-500" id="sliderGramP">150g</p></div>
+                        <div class="w-1/3"><p class="text-amber-500 font-bold mb-1">Carbs</p><p class="font-bold text-lg"><span id="sliderValC">40</span>%</p><p class="text-gray-500" id="sliderGramC">200g</p></div>
+                        <div class="w-1/3"><p class="text-emerald-500 font-bold mb-1">Fat</p><p class="font-bold text-lg"><span id="sliderValF">30</span>%</p><p class="text-gray-500" id="sliderGramF">67g</p></div>
+                    </div>
+                    <button id="saveManualBtn" class="w-full bg-black dark:bg-white text-white dark:text-black font-bold py-3 rounded-xl active:scale-95 transition-transform">Save Custom Split</button>
+                </div>
+                <div class="bg-white dark:bg-gray-900 p-4 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800">
+                    <h3 class="font-bold text-gray-900 dark:text-white mb-2">Data Backup & Account</h3>
+                    <p class="text-xs text-gray-500 mb-4">Export your local storage code to move your data to a new device.</p>
+                    <div class="flex gap-2 mb-3">
+                        <button onclick="exportData()" class="flex-1 bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 font-bold py-2 rounded-xl active:scale-95 transition-transform text-sm"><i class="ph ph-export"></i> Export</button>
+                        <button onclick="importData()" class="flex-1 bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 font-bold py-2 rounded-xl active:scale-95 transition-transform text-sm"><i class="ph ph-download"></i> Import</button>
+                    </div>
+                    <button onclick="forceCloudSync()" class="w-full bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 font-bold py-3 rounded-xl active:scale-95 transition-transform flex items-center justify-center gap-2 mb-3"><i class="ph-bold ph-cloud-arrow-up text-xl"></i> Force Sync to Cloud</button>
+                    
+                    <!-- STREAMING_CHUNK: Added Replay Onboarding and Logout here! -->
+                    <button onclick="startOnboarding()" class="w-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 font-bold py-3 rounded-xl active:scale-95 transition-transform flex items-center justify-center gap-2 mb-3">
+                        <i class="ph-bold ph-play-circle text-xl"></i> Replay Onboarding
+                    </button>
+                    
+                    <div id="logoutContainer" class="hidden">
+                        <button onclick="logout()" class="w-full mt-4 bg-gray-200 dark:bg-gray-800 text-gray-800 dark:text-gray-200 font-bold py-3 rounded-xl active:scale-95 transition-transform">Sign Out</button>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </main>
+    <!-- Bottom Navigation -->
+    <nav class="fixed bottom-0 w-full bg-white/95 dark:bg-gray-900/95 backdrop-blur-lg border-t border-gray-200 dark:border-gray-800 z-[100] transition-colors duration-300" style="padding-bottom: env(safe-area-inset-bottom);">
+        <div class="flex justify-around items-center h-16 px-2 relative z-10">
+            <button class="nav-item active flex items-center justify-center w-16 h-12 text-gray-400 dark:text-gray-500 transition-colors" data-target="tab-log">
+                <i class="ph-fill ph-plus-circle text-2xl pointer-events-none"></i>
+            </button>
+            <button class="nav-item flex items-center justify-center w-16 h-12 text-gray-400 dark:text-gray-500 transition-colors" data-target="tab-dash">
+                <i class="ph-fill ph-chart-pie-slice text-2xl pointer-events-none"></i>
+            </button>
+            <button class="nav-item flex items-center justify-center w-16 h-12 text-gray-400 dark:text-gray-500 transition-colors" data-target="tab-history">
+                <i class="ph-fill ph-clock-counter-clockwise text-2xl pointer-events-none"></i>
+            </button>
+            <button class="nav-item flex items-center justify-center w-16 h-12 text-gray-400 dark:text-gray-500 transition-colors" data-target="tab-social">
+                <i class="ph-fill ph-users text-2xl pointer-events-none"></i>
+            </button>
+            <button class="nav-item flex items-center justify-center w-16 h-12 text-gray-400 dark:text-gray-500 transition-colors" data-target="tab-settings">
+                <i class="ph-fill ph-gear text-2xl pointer-events-none"></i>
+            </button>
+        </div>
+        <!-- Safari iOS Gap Filler -->
+        <div class="absolute top-full left-0 w-full h-[50vh] bg-white/95 dark:bg-gray-900/95 backdrop-blur-lg z-0"></div>
+    </nav>
+
+    <!-- App Script -->
+    <script>
+        // Catch harmless Firebase IndexedDB wipe errors in preview environments
+        window.addEventListener('unhandledrejection', event => {
+            if (event.reason && event.reason.message && event.reason.message.includes('Database deleted by request of the user')) {
+                console.warn('Harmless Firebase IndexedDB wipe detected and safely ignored.');
+                event.preventDefault(); 
+            }
+        });
+
+        let FIREBASE_ENABLED = true; 
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCpvyKjuq8CuoxuCltBUqqwkGJ7ZiAVpaE",
+            authDomain: "macrotrack-48894.firebaseapp.com",
+            projectId: "macrotrack-48894",
+            storageBucket: "macrotrack-48894.firebasestorage.app",
+            messagingSenderId: "1031756690722",
+            appId: "1:1031756690722:web:dbcb493b384f196646a17b",
+            measurementId: "G-VDLTHQ4H8V"
+        };
+
+        let currentUser = null;
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'macrotrack-app';
+
+        if (FIREBASE_ENABLED) {
+            firebase.initializeApp(firebaseConfig);
+            window.auth = firebase.auth();
+            window.db = firebase.firestore();
+
+            const wasRedirecting = localStorage.getItem('mt_isRedirecting') === 'true';
+
+            const showLoginButtons = () => {
+                if(!sessionStorage.getItem('guestMode')) {
+                    document.getElementById('authOverlay').classList.remove('hidden');
+                    document.getElementById('authOverlay').classList.add('flex');
+                    document.getElementById('authLoadingState').classList.add('hidden');
+                    document.getElementById('authActionButtons').classList.remove('hidden');
+                    document.getElementById('authActionButtons').classList.add('flex');
+                }
+            };
+
+            if (wasRedirecting) {
+                // Lock the spinner ON immediately if we know they just tapped the button
+                document.getElementById('authOverlay').classList.remove('hidden');
+                document.getElementById('authOverlay').classList.add('flex');
+                document.getElementById('authLoadingState').classList.remove('hidden');
+                document.getElementById('authActionButtons').classList.add('hidden');
+            }
+
+            // Pure, simple redirect catcher without wrappers
+            window.auth.getRedirectResult().then((result) => {
+                if (result && result.user) {
+                    localStorage.removeItem('mt_isRedirecting');
+                }
+            }).catch(error => {
+                localStorage.removeItem('mt_isRedirecting');
+                window.showToast("Login error: " + error.message, "error");
+                showLoginButtons();
+            });
+
+            window.auth.onAuthStateChanged(async user => {
+                const overlay = document.getElementById('authOverlay');
+                const usernameModal = document.getElementById('usernameModal');
+                const statusText = document.getElementById('accountStatusText');
+                const signOutBtn = document.getElementById('signOutBtn');
+                const signInBtn = document.getElementById('signInSettingsBtn');
+
+                if (user) {
+                    currentUser = user;
+                    overlay.classList.add('hidden');
+                    overlay.classList.remove('flex');
+                    
+                    try {
+                        const profileRef = window.db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('profile').doc('main');
+                        const doc = await profileRef.get();
+                        
+                        if (!doc.exists || !doc.data().username) {
+                            usernameModal.classList.remove('hidden');
+                            usernameModal.classList.add('flex');
+                        } else {
+                            const username = doc.data().username;
+                            userGoals.displayName = username;
+                            document.getElementById('userAvatar').innerText = username.charAt(0).toUpperCase();
+                            document.getElementById('setDisplayName').value = username;
+                            
+                            await window.syncCloudFoods(user.uid);
+                            window.syncProfileToCloud();
+                        }
+                    } catch(e) {
+                        console.error("Profile check failed:", e);
+                    }
+                    
+                    statusText.innerHTML = `Signed in as <b>${user.email}</b>`;
+                    statusText.className = "text-xs text-blue-500 mb-4";
+                    signOutBtn.classList.remove('hidden');
+                    signInBtn.classList.add('hidden');
+                    
+                } else {
+                    currentUser = null;
+                    document.getElementById('userAvatar').innerText = 'U';
+                    document.getElementById('usernameModal').classList.add('hidden');
+                    document.getElementById('usernameModal').classList.remove('flex');
+                    statusText.innerText = "Not signed in. Data is stored locally on this device.";
+                    statusText.className = "text-xs text-gray-500 dark:text-gray-400 mb-4";
+                    signOutBtn.classList.add('hidden');
+                    signInBtn.classList.remove('hidden');
+                    
+                    if (localStorage.getItem('mt_isRedirecting') === 'true') {
+                        // Give it 3 seconds to catch up in case network is slow. 
+                        // If still null, iOS wiped the cookie.
+                        setTimeout(() => {
+                            if (!currentUser) {
+                                localStorage.removeItem('mt_isRedirecting');
+                                showLoginButtons();
+                                window.showToast("iOS blocked login. Log in via Safari, then add to Home Screen.", "error");
+                            }
+                        }, 3000);
+                    } else {
+                        showLoginButtons();
+                    }
+                }
+            });
+        }
+
+
+        window.syncCloudFoods = async (uid) => {
+            try {
+                const foodsRef = window.db.collection('artifacts').doc(appId).collection('users').doc(uid).collection('foods');
+                const snapshot = await foodsRef.get();
+                
+                if (snapshot.empty && allFoods.length > 0) {
+                    window.showToast("Backing up local foods to cloud...", "info");
+                    const batch = window.db.batch();
+                    allFoods.forEach(food => {
+                        const docRef = foodsRef.doc(food.id);
+                        batch.set(docRef, food);
+                    });
+                    await batch.commit();
+                    window.showToast("Cloud backup complete!", "success");
+                } else if (!snapshot.empty) {
+                    allFoods = snapshot.docs.map(doc => doc.data());
+                    localStorage.setItem('mt_allFoods', JSON.stringify(allFoods));
+                    updateDashboardUI();
+                    renderHistory();
+                }
+            } catch (err) {
+                console.error("Error syncing foods:", err);
+            }
+        };
+
+        window.syncProfileToCloud = async () => {
+            if (!FIREBASE_ENABLED || !currentUser) return;
+            try {
+                const profileRef = window.db.collection('artifacts').doc(appId).collection('users').doc(currentUser.uid).collection('profile').doc('main');
+                await profileRef.set({ goals: userGoals }, { merge: true });
+            } catch(e) { console.error("Profile sync failed", e); }
+        };
+
+        window.signInWithEmail = async () => {
+            const email = document.getElementById('emailInput').value.trim();
+            const password = document.getElementById('passwordInput').value;
+            const btn = document.getElementById('emailLoginBtn');
+            
+            if (!email || !password) return window.showToast("Please enter email and password", "error");
+            if (password.length < 6) return window.showToast("Password must be at least 6 characters", "error");
+            
+            btn.disabled = true;
+            btn.innerHTML = '<i class="ph ph-spinner animate-spin text-lg"></i>';
+            
+            try {
+                // Try to sign in first
+                await window.auth.signInWithEmailAndPassword(email, password);
+            } catch (error) {
+                // If account doesn't exist, seamlessly create it
+                if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+                    try {
+                        await window.auth.createUserWithEmailAndPassword(email, password);
+                        window.showToast("Account created successfully!", "success");
+                    } catch (createError) {
+                        if (createError.code === 'auth/email-already-in-use') {
+                            window.showToast("Incorrect password for this email.", "error");
+                        } else {
+                            window.showToast(createError.message, "error");
+                        }
+                        btn.disabled = false;
+                        btn.innerHTML = 'Sign In / Register';
+                    }
+                } else {
+                    window.showToast(error.message, "error");
+                    btn.disabled = false;
+                    btn.innerHTML = 'Sign In / Register';
+                }
+            }
+        };
+
+        window.signOut = () => {
+            if (FIREBASE_ENABLED && currentUser) {
+                window.auth.signOut().then(() => showToast("Signed out", "info"));
+            }
+        };
+
+        window.continueAsGuest = () => {
+            sessionStorage.setItem('guestMode', 'true');
+            const overlay = document.getElementById('authOverlay');
+            overlay.classList.add('hidden');
+            overlay.classList.remove('flex');
+            showToast("Playing in offline mode", "info");
+            
+            // STREAMING_CHUNK: Trigger Onboarding for first-time guests
+            if (localStorage.getItem('mt_onboarded') !== 'true') {
+                setTimeout(startOnboarding, 100); 
+            }
+        };
+
+        window.showAuthScreen = () => {
+            document.getElementById('authOverlay').classList.remove('hidden');
+            document.getElementById('authOverlay').classList.add('flex');
+        };
+
+        window.claimUsername = async () => {
+            if (!currentUser) return;
+            const input = document.getElementById('usernameInput');
+            const status = document.getElementById('usernameStatus');
+            const btn = document.getElementById('claimUsernameBtn');
+            const username = input.value.trim().toLowerCase();
+
+            if (username.length < 3 || username.length > 15) return status.innerText = "Must be between 3 and 15 characters.";
+            if (!/^[a-z0-9_]+$/.test(username)) return status.innerText = "Only lowercase letters, numbers, and underscores allowed.";
+
+            try {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="ph ph-spinner animate-spin text-xl"></i> Checking availability...';
+                
+                const usernameRef = window.db.collection('artifacts').doc(appId).collection('public').doc('data').collection('usernames').doc(username);
+                const docSnap = await usernameRef.get();
+
+                if (docSnap.exists) {
+                    status.innerText = "Username is already taken!";
+                    btn.disabled = false;
+                    btn.innerHTML = 'Claim Username <i class="ph-bold ph-arrow-right text-xl"></i>';
+                    return;
+                }
+
+                await usernameRef.set({ uid: currentUser.uid });
+                
+                const profileRef = window.db.collection('artifacts').doc(appId).collection('users').doc(currentUser.uid).collection('profile').doc('main');
+                await profileRef.set({ username: username, email: currentUser.email }, { merge: true });
+
+                status.className = "text-xs font-bold text-green-500 h-4 mb-4";
+                status.innerText = "Username claimed!";
+                
+                userGoals.displayName = username;
+                localStorage.setItem('mt_userGoals', JSON.stringify(userGoals));
+                document.getElementById('userAvatar').innerText = username.charAt(0).toUpperCase();
+                document.getElementById('setDisplayName').value = username;
+                
+                setTimeout(() => {
+                    document.getElementById('usernameModal').classList.add('hidden');
+                    document.getElementById('usernameModal').classList.remove('flex');
+                    window.showToast(`Welcome to the cloud, @${username}!`, "success");
+                    window.syncCloudFoods(currentUser.uid);
+                    
+                    // STREAMING_CHUNK: Trigger Onboarding for first-time cloud users
+                    if (localStorage.getItem('mt_onboarded') !== 'true') {
+                        setTimeout(startOnboarding, 400); 
+                    }
+                }, 1000);
+
+            } catch (err) {
+                status.innerText = "Error saving username. Try again.";
+                btn.disabled = false;
+                btn.innerHTML = 'Claim Username <i class="ph-bold ph-arrow-right text-xl"></i>';
+            }
+        };
+
+                // ==========================================
+        // ONBOARDING FLOW LOGIC
+        // ==========================================
+        let currentObSlide = 0;
+        const totalObSlides = 4;
+
+        window.startOnboarding = () => {
+            currentObSlide = 0;
+            // Reset all slides to original positions
+            for(let i=0; i<totalObSlides; i++) {
+                const el = document.getElementById(`ob-slide-${i}`);
+                if(i===0) {
+                    el.className = "ob-slide absolute inset-0 flex flex-col items-center justify-center p-8 translate-x-0 opacity-100";
+                } else {
+                    el.className = "ob-slide absolute inset-0 flex flex-col items-center justify-center p-8 translate-x-full opacity-0";
+                }
+            }
+            if(document.getElementById('ob-slide-3')) {
+                document.getElementById('ob-slide-3').classList.replace('items-center', 'items-start');
+                document.getElementById('ob-slide-3').classList.add('overflow-y-auto');
+            }
+            document.getElementById('ob-next-btn').innerText = "Continue";
+            
+            const overlay = document.getElementById('onboardingOverlay');
+            if (overlay) {
+                overlay.classList.remove('hidden');
+                overlay.classList.add('flex');
+                
+                // Slight delay to allow display:flex to render before fading in
+                setTimeout(() => {
+                    overlay.classList.add('show');
+                    updateOnboardingUI();
+                    
+                    // Retrigger the SVG line drawing animation
+                    const path = document.querySelector('.animate-draw');
+                    if (path) {
+                        path.style.animation = 'none';
+                        path.offsetHeight; /* trigger reflow */
+                        path.style.animation = null; 
+                    }
+                }, 50);
+            }
+        };
+
+        window.nextOnboardingSlide = () => {
+            if (currentObSlide === 2) {
+                document.getElementById('ob-next-btn').innerText = "Finish Setup";
+            }
+            
+            if (currentObSlide >= totalObSlides - 1) {
+                finishOnboarding();
+                return;
+            }
+            
+            // Slide current out to the left
+            const currentEl = document.getElementById(`ob-slide-${currentObSlide}`);
+            if (currentEl) {
+                currentEl.classList.remove('translate-x-0', 'opacity-100');
+                currentEl.classList.add('-translate-x-full', 'opacity-0');
+            }
+            
+            currentObSlide++;
+            
+            // Slide next in from the right
+            const nextEl = document.getElementById(`ob-slide-${currentObSlide}`);
+            if (nextEl) {
+                nextEl.classList.remove('translate-x-full', 'opacity-0');
+                nextEl.classList.add('translate-x-0', 'opacity-100');
+            }
+            
+            updateOnboardingUI();
+        };
+
+        function updateOnboardingUI() {
+            for(let i=0; i<totalObSlides; i++) {
+                const dot = document.getElementById(`dot-${i}`);
+                if(dot) {
+                    if (i === currentObSlide) {
+                        dot.className = "w-4 h-2 rounded-full bg-gray-900 dark:bg-white transition-all duration-300";
+                    } else {
+                        dot.className = "w-2 h-2 rounded-full bg-gray-300 dark:bg-gray-700 transition-all duration-300";
+                    }
+                }
+            }
+        }
+
+        window.finishOnboarding = () => {
+            const overlay = document.getElementById('onboardingOverlay');
+            if (overlay) {
+                overlay.classList.remove('show');
+                setTimeout(() => {
+                    overlay.classList.add('hidden');
+                    overlay.classList.remove('flex');
+                }, 300); 
+            }
+            
+            localStorage.setItem('mt_onboarded', 'true');
+        };
+
+        // Auto-show onboarding on canvas load if not seen yet
+        if (!localStorage.getItem('mt_onboarded')) {
+            setTimeout(startOnboarding, 500);
+        }
+        // ==========================================
+
+        const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbxYk2MQbAamBncjAf6QhQFgaIL-vjLMvp7EvKWDB5xjdAdXwKb2CNnF_Oe0fs8t4eDhpA/exec";
+
+        let userGoals = JSON.parse(localStorage.getItem('mt_userGoals')) || { cals: 2000, p: 150, c: 200, f: 66, water: 8 };
+        
+        let allFoods = JSON.parse(localStorage.getItem('mt_allFoods')) || [];
+
+        let base64Image = null;
+        let imageMimeType = null;
+        let todayWater = parseInt(localStorage.getItem('mt_water_' + new Date().toDateString())) || 0;
+
+        let macroChartInstance = null;
+        let weeklyChartInstance = null;
+
+        const round1 = (num) => Math.round(num * 10) / 10;
+
+        window.showToast = function(msg, type = 'info') {
+            const toast = document.getElementById('toast');
+            const icon = document.getElementById('toastIcon');
+            document.getElementById('toastMsg').innerText = msg;
+            icon.className = `ph-fill text-2xl ${type === 'error' ? 'ph-warning-circle text-red-400' : type === 'success' ? 'ph-check-circle text-green-400' : 'ph-info text-blue-400'}`;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3500);
+        }
+
+        document.querySelectorAll('.nav-item').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const targetId = e.currentTarget.getAttribute('data-target');
+                document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+                e.currentTarget.classList.add('active');
+                
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                document.getElementById(targetId).classList.add('active');
+                window.scrollTo(0, 0);
+
+                const titles = { 'tab-log': 'Log Food', 'tab-dash': 'Dashboard', 'tab-history': 'History', 'tab-social': 'Friends Feed', 'tab-settings': 'Settings' };
+                document.getElementById('headerTitle').innerText = titles[targetId];
+                
+                if(targetId === 'tab-dash') updateDashboardUI();
+                if(targetId === 'tab-social') loadSocialData();
+                if(targetId === 'tab-settings') initSliderVals(); 
+            });
+        });
+
+        window.exportData = async () => {
+            const backup = { goals: userGoals, foods: allFoods, water: todayWater };
+            const code = JSON.stringify(backup);
+            try {
+                await navigator.clipboard.writeText(code);
+                showToast("Backup copied to clipboard!", "success");
+            } catch (err) {
+                prompt("Please manually copy your backup data below:", code);
+            }
+        };
+
+        window.importData = () => {
+            const input = prompt("Paste your backup data here:");
+            if (!input) return;
+            try {
+                const data = JSON.parse(input);
+                if (data.goals) localStorage.setItem('mt_userGoals', JSON.stringify(data.goals));
+                if (data.foods) localStorage.setItem('mt_allFoods', JSON.stringify(data.foods));
+                if (data.water !== undefined) localStorage.setItem('mt_water_' + new Date().toDateString(), data.water);
+                
+                showToast("Data imported successfully! Reloading...", "success");
+                setTimeout(() => location.reload(), 1500);
+            } catch (e) {
+                showToast("Invalid backup code", "error");
+            }
+        };
+
+        window.forceCloudSync = async () => {
+            if (!FIREBASE_ENABLED || !currentUser) return window.showToast("Please log in first!", "error");
+            if (allFoods.length === 0) return window.showToast("No foods to sync!", "error");
+            
+            try {
+                window.showToast("Pushing local data to cloud...", "info");
+                const batch = window.db.batch();
+                const foodsRef = window.db.collection('artifacts').doc(appId).collection('users').doc(currentUser.uid).collection('foods');
+                
+                allFoods.forEach(food => {
+                    batch.set(foodsRef.doc(food.id), food);
+                });
+                
+                await batch.commit();
+                window.showToast("Sync complete! Check Firebase.", "success");
+            } catch (err) {
+                window.showToast("Sync Failed: " + err.message, "error");
+            }
+        };
+
+        function updateGoalsUI() {
+            document.getElementById('setGoalCals').innerText = userGoals.cals;
+            document.getElementById('setGoalP').innerText = userGoals.p;
+            document.getElementById('setGoalC').innerText = userGoals.c;
+            document.getElementById('setGoalF').innerText = userGoals.f;
+            document.getElementById('floatGoalCals').innerText = userGoals.cals;
+            
+            if(userGoals.displayName) {
+                document.getElementById('setDisplayName').value = userGoals.displayName;
+                if(!currentUser) document.getElementById('userAvatar').innerText = userGoals.displayName.charAt(0).toUpperCase();
+            }
+        }
+
+        window.saveProfileName = () => {
+            const name = document.getElementById('setDisplayName').value.trim();
+            userGoals.displayName = name;
+            localStorage.setItem('mt_userGoals', JSON.stringify(userGoals));
+            updateGoalsUI();
+            window.syncProfileToCloud(); 
+            showToast("Name saved!", "success");
+        };
+
+        let sliderVal1 = 30; let sliderVal2 = 70; let draggingThumb = null;
+        const track = document.getElementById('macroSliderTrack');
+        const calInput = document.getElementById('manualCals');
+        const waterInput = document.getElementById('manualWater');
+
+        function initSliderVals() {
+            calInput.value = userGoals.cals;
+            waterInput.value = userGoals.water || 8;
+            if (userGoals.cals > 0) {
+                const pCals = userGoals.p * 4;
+                const cCals = userGoals.c * 4;
+                const fCals = userGoals.f * 9;
+                const total = pCals + cCals + fCals;
+                if (total > 0) {
+                    sliderVal1 = (pCals / total) * 100;
+                    sliderVal2 = sliderVal1 + ((cCals / total) * 100);
+                }
+            }
+            updateSliderUI();
+            updateGoalSlider(); 
+        }
+
+        function updateSliderUI() {
+            sliderVal1 = Math.max(5, Math.min(sliderVal1, sliderVal2 - 5));
+            sliderVal2 = Math.max(sliderVal1 + 5, Math.min(sliderVal2, 95));
+
+            document.getElementById('macroBarP').style.width = sliderVal1 + '%';
+            document.getElementById('macroBarC').style.left = sliderVal1 + '%';
+            document.getElementById('macroBarC').style.width = (sliderVal2 - sliderVal1) + '%';
+            document.getElementById('macroBarF').style.width = (100 - sliderVal2) + '%';
+            document.getElementById('macroThumb1').style.left = sliderVal1 + '%';
+            document.getElementById('macroThumb2').style.left = sliderVal2 + '%';
+
+            const pPct = Math.round(sliderVal1);
+            const cPct = Math.round(sliderVal2 - sliderVal1);
+            const fPct = Math.round(100 - sliderVal2);
+            
+            document.getElementById('sliderValP').innerText = pPct;
+            document.getElementById('sliderValC').innerText = cPct;
+            document.getElementById('sliderValF').innerText = fPct;
+
+            const targetCals = parseFloat(calInput.value) || 2000;
+            document.getElementById('sliderGramP').innerText = Math.round((targetCals * (pPct/100)) / 4) + 'g';
+            document.getElementById('sliderGramC').innerText = Math.round((targetCals * (cPct/100)) / 4) + 'g';
+            document.getElementById('sliderGramF').innerText = Math.round((targetCals * (fPct/100)) / 9) + 'g';
+        }
+
+        calInput.addEventListener('input', updateSliderUI);
+
+        window.updateGoalSlider = function(e) {
+            const slider = document.getElementById('calcGoalSlider');
+            if (!slider) return;
+            let val = parseInt(slider.value);
+            
+            if (e && (e.type === 'change' || e.type === 'touchend' || e.type === 'mouseup')) {
+                const snapPoints = [-750, -500, -250, 0, 250, 500, 750];
+                for (let snap of snapPoints) {
+                    if (Math.abs(val - snap) <= 125) { val = snap; slider.value = val; break; }
+                }
+            }
+
+            const lbsPerWeek = Math.abs(val / 500).toFixed(1);
+            const modeText = document.getElementById('goalModeText');
+            const rateText = document.getElementById('goalRateText');
+            const warning = document.getElementById('goalWarning');
+
+            if (val < 0) {
+                modeText.innerText = "Lose Weight"; modeText.className = "text-sm font-bold text-rose-500";
+                rateText.innerText = `-${lbsPerWeek} lbs/wk`;
+            } else if (val > 0) {
+                modeText.innerText = "Gain Weight"; modeText.className = "text-sm font-bold text-emerald-500";
+                rateText.innerText = `+${lbsPerWeek} lbs/wk`;
+            } else {
+                modeText.innerText = "Maintain Weight"; modeText.className = "text-sm font-bold text-gray-900 dark:text-white";
+                rateText.innerText = `0.0 lbs/wk`;
+            }
+
+            if (val < -500 || val > 500) warning.classList.remove('hidden');
+            else warning.classList.add('hidden');
+        };
+
+        function startDrag(e, thumbNum) {
+            e.preventDefault();
+            draggingThumb = thumbNum;
+            document.addEventListener('mousemove', onDrag);
+            document.addEventListener('touchmove', onDrag, {passive: false});
+            document.addEventListener('mouseup', stopDrag);
+            document.addEventListener('touchend', stopDrag);
+        }
+
+        function onDrag(e) {
+            if (!draggingThumb) return;
+            e.preventDefault(); 
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const rect = track.getBoundingClientRect();
+            let percent = ((clientX - rect.left) / rect.width) * 100;
+            if (draggingThumb === 1) sliderVal1 = percent;
+            if (draggingThumb === 2) sliderVal2 = percent;
+            updateSliderUI();
+        }
+
+        function stopDrag() {
+            draggingThumb = null;
+            document.removeEventListener('mousemove', onDrag);
+            document.removeEventListener('touchmove', onDrag);
+            document.removeEventListener('mouseup', stopDrag);
+            document.removeEventListener('touchend', stopDrag);
+        }
+
+        document.getElementById('macroThumb1').addEventListener('mousedown', (e) => startDrag(e, 1));
+        document.getElementById('macroThumb1').addEventListener('touchstart', (e) => startDrag(e, 1), {passive: false});
+        document.getElementById('macroThumb2').addEventListener('mousedown', (e) => startDrag(e, 2));
+        document.getElementById('macroThumb2').addEventListener('touchstart', (e) => startDrag(e, 2), {passive: false});
+
+        document.getElementById('saveManualBtn').onclick = () => {
+            const targetCals = parseFloat(calInput.value) || 2000;
+            const pPct = sliderVal1;
+            const cPct = sliderVal2 - sliderVal1;
+            const fPct = 100 - sliderVal2;
+
+            userGoals = {
+                ...userGoals,
+                cals: targetCals,
+                p: Math.round((targetCals * (pPct/100)) / 4),
+                c: Math.round((targetCals * (cPct/100)) / 4),
+                f: Math.round((targetCals * (fPct/100)) / 9),
+                water: parseInt(waterInput.value) || 8
+            };
+            localStorage.setItem('mt_userGoals', JSON.stringify(userGoals));
+            updateGoalsUI();
+            updateDashboardUI();
+            window.syncProfileToCloud(); // Phase 3 trigger
+            showToast("Custom goals saved locally!", "success");
+        };
+
+        window.updateGoalSlider = (e) => {
+            let val = parseInt(e.target.value);
+            
+            // Tiny magnetic snap exactly at 0 so users can easily find "Maintain Weight"
+            if (Math.abs(val) < 15) {
+                val = 0;
+                e.target.value = 0;
+            }
+
+            const modeText = document.getElementById('goalModeText');
+            const rateText = document.getElementById('goalRateText');
+            const warning = document.getElementById('goalWarning');
+
+            // Update text based on goal
+            if (val === 0) {
+                modeText.innerHTML = "Maintain Weight";
+                modeText.className = "text-sm font-bold text-gray-900 dark:text-white";
+            } else if (val < 0) {
+                modeText.innerHTML = `Lose Weight <span class="text-xs">(${val} kcal)</span>`;
+                modeText.className = "text-sm font-bold text-rose-500";
+            } else {
+                modeText.innerHTML = `Gain Weight <span class="text-xs">(+${val} kcal)</span>`;
+                modeText.className = "text-sm font-bold text-emerald-500";
+            }
+
+            // 500 kcal/day offset equals exactly 1 lb per week
+            const lbs = Math.abs(val) / 500;
+            rateText.innerText = `${lbs.toFixed(2)} lbs/wk`;
+
+            // Show warning for aggressive deficits
+            if (val < -500) {
+                warning.classList.remove('hidden');
+            } else {
+                warning.classList.add('hidden');
+            }
+        };
+
+        window.currentCalcMode = 'basic';
+        window.switchCalcTab = (mode) => {
+            window.currentCalcMode = mode;
+            const btnBasic = document.getElementById('tabBtn-basic');
+            const btnApple = document.getElementById('tabBtn-apple');
+            const contentBasic = document.getElementById('calcContent-basic');
+            const contentApple = document.getElementById('calcContent-apple');
+
+            if(mode === 'basic') {
+                btnBasic.className = "flex-1 text-[11px] font-bold py-2 rounded-lg bg-white dark:bg-gray-700 shadow-sm text-gray-900 dark:text-white transition-all";
+                btnApple.className = "flex-1 text-[11px] font-bold py-2 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-all";
+                contentBasic.classList.remove('hidden');
+                contentApple.classList.add('hidden');
+            } else {
+                btnApple.className = "flex-1 text-[11px] font-bold py-2 rounded-lg bg-white dark:bg-gray-700 shadow-sm text-gray-900 dark:text-white transition-all";
+                btnBasic.className = "flex-1 text-[11px] font-bold py-2 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-all";
+                contentApple.classList.remove('hidden');
+                contentBasic.classList.add('hidden');
+            }
+        };
+
+        document.getElementById('recalcBtn').onclick = () => {
+            const offset = parseInt(document.getElementById('calcGoalSlider').value) || 0;
+            let baseTDEE = 0;
+            let p_pct = 30, c_pct = 40, f_pct = 30; // Default Apple Health split
+            let targetCals = 0;
+
+            if (window.currentCalcMode === 'basic') {
+                const age = parseInt(document.getElementById('calcAge').value);
+                const weightLbs = parseFloat(document.getElementById('calcWeightBasic').value);
+                const heightIn = parseFloat(document.getElementById('calcHeight').value);
+                const gender = document.getElementById('calcGender').value;
+                const activity = parseFloat(document.getElementById('calcActivity').value);
+
+                if (!age || !weightLbs || !heightIn) {
+                    return window.showToast ? window.showToast("Please fill in age, weight, and height.", "error") : alert("Missing data");
+                }
+
+                // Mifflin-St Jeor Equation
+                const weightKg = weightLbs * 0.453592;
+                const heightCm = heightIn * 2.54;
+                let bmr = (10 * weightKg) + (6.25 * heightCm) - (5 * age);
+                bmr += (gender === 'M') ? 5 : -161;
+
+                baseTDEE = bmr * activity;
+                targetCals = Math.round(baseTDEE + offset);
+                
+                // For basic, we lock protein to 1g/lb, fat to 30%, rest carbs
+                const p_grams = Math.round(weightLbs * 1.0);
+                const f_grams = Math.round((targetCals * 0.30) / 9);
+                const c_grams = Math.round((targetCals - (p_grams * 4) - (f_grams * 9)) / 4);
+                
+                // Convert back to percentages to ensure the manual sliders add up to exactly 100%
+                p_pct = Math.round((p_grams * 4) / targetCals * 100);
+                c_pct = Math.round((c_grams * 4) / targetCals * 100);
+                f_pct = 100 - p_pct - c_pct; // Forced exactly 100%
+            } else {
+                // Apple Health Mode
+                const resting = parseFloat(document.getElementById('calcResting').value);
+                const active = parseFloat(document.getElementById('calcActive').value);
+
+                if (!resting || !active) {
+                    return window.showToast ? window.showToast("Please enter Resting and Active energy.", "error") : alert("Missing data");
+                }
+
+                baseTDEE = resting + active;
+                targetCals = Math.round(baseTDEE + offset);
+                // Apple Health split is always exactly 30/40/30
+                p_pct = 30; c_pct = 40; f_pct = 30;
+            }
+
+            // Calculate final perfect grams based on the locked percentages
+            const final_p = Math.round((targetCals * (p_pct / 100)) / 4);
+            const final_c = Math.round((targetCals * (c_pct / 100)) / 4);
+            const final_f = Math.round((targetCals * (f_pct / 100)) / 9);
+
+            // 1. UNIVERSAL MEMORY SYNC: Saves EXACTLY to the p, c, f, and cals variables your app expects
+            const syncData = (obj) => {
+                if (!obj) return;
+                obj.cals = targetCals; 
+                obj.p = final_p;
+                obj.c = final_c;
+                obj.f = final_f;
+            };
+
+            if (typeof userGoals !== 'undefined') syncData(userGoals);
+            if (typeof window.userGoals !== 'undefined') syncData(window.userGoals);
+            
+            // Hard save to localStorage so the rest of the app loads it correctly
+            let lsGoals = {};
+            try { lsGoals = JSON.parse(localStorage.getItem('mt_userGoals')) || {}; } catch(e) {}
+            syncData(lsGoals);
+            localStorage.setItem('mt_userGoals', JSON.stringify(lsGoals));
+
+            // 2. BRUTE FORCE DOM OVERRIDE
+            const forceText = (id, text, isGrams) => { 
+                const val = isGrams ? text + 'g' : text;
+                document.querySelectorAll(`#${id}, .${id}`).forEach(el => {
+                    if (el.tagName === 'INPUT') el.value = text;
+                    else el.innerText = val;
+                }); 
+            };
+
+            forceText('goalCals', targetCals, false);
+            forceText('displayCals', targetCals, false);
+            forceText('goalCalsDisplay', targetCals, false);
+            
+            forceText('goalProtein', final_p, true);
+            forceText('goalPro', final_p, true);
+            forceText('displayProtein', final_p, true);
+            forceText('displayPro', final_p, true);
+            forceText('goalProteinDisplay', final_p, true);
+            
+            forceText('goalCarbs', final_c, true);
+            forceText('goalCarb', final_c, true);
+            forceText('displayCarbs', final_c, true);
+            forceText('displayCarb', final_c, true);
+            forceText('goalCarbsDisplay', final_c, true);
+            
+            forceText('goalFat', final_f, true);
+            forceText('displayFat', final_f, true);
+            forceText('goalFatDisplay', final_f, true);
+            
+            // Force Manual Adjustment Widget to exactly 100%
+            forceText('setGoalCals', targetCals, false);
+            forceText('setCalories', targetCals, false);
+            
+            forceText('val1', p_pct + '%', false);
+            forceText('pct1', p_pct + '%', false);
+            forceText('proteinPct', p_pct + '%', false);
+            
+            forceText('val2', c_pct + '%', false);
+            forceText('pct2', c_pct + '%', false);
+            forceText('carbsPct', c_pct + '%', false);
+            
+            forceText('val3', f_pct + '%', false);
+            forceText('pct3', f_pct + '%', false);
+            forceText('fatPct', f_pct + '%', false);
+            
+            // Move Manual Sliders and trigger Native App events
+            window.sliderVal1 = p_pct;
+            window.sliderVal2 = p_pct + c_pct;
+            if(typeof sliderVal1 !== 'undefined') sliderVal1 = p_pct;
+            if(typeof sliderVal2 !== 'undefined') sliderVal2 = p_pct + c_pct;
+            
+            const s1 = document.getElementById('slider1');
+            const s2 = document.getElementById('slider2');
+            if (s1) { s1.value = window.sliderVal1; s1.dispatchEvent(new Event('input', { bubbles: true })); }
+            if (s2) { s2.value = window.sliderVal2; s2.dispatchEvent(new Event('input', { bubbles: true })); }
+
+            // 3. TRIGGER NATIVE UI REFRESH
+            if (typeof updateGoalsUI === 'function') updateGoalsUI();
+            if (typeof updateDashboardUI === 'function') updateDashboardUI();
+            if (typeof initSliderVals === 'function') initSliderVals(); 
+            if (typeof syncProfileToCloud === 'function') syncProfileToCloud();
+
+            if (window.showToast) window.showToast(`Goals updated via ${window.currentCalcMode === 'basic' ? 'Basic Calculator' : 'Apple Health'}!`, "success");
+        };
+
+        document.getElementById('imagePreview').onclick = () => document.getElementById('imageInput').click();
+        
+        document.getElementById('imageInput').onchange = (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            imageMimeType = file.type || "image/jpeg"; 
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                document.getElementById('imagePreview').style.backgroundImage = `url(${event.target.result})`;
+                document.getElementById('cameraIconContainer').classList.add('hidden');
+                base64Image = event.target.result.split(',')[1];
+            };
+            reader.readAsDataURL(file);
+        };
+
+        document.getElementById('analyzeBtn').onclick = async () => {
+            const foodName = document.getElementById('foodName').value.trim();
+            const description = document.getElementById('foodDesc').value.trim();
+            const analyzeBtn = document.getElementById('analyzeBtn');
+
+            if (!base64Image && !foodName && !description) {
+                return window.showToast("Please type something or snap a photo!", "error");
+            }
+
+            try {
+                analyzeBtn.disabled = true;
+                analyzeBtn.innerHTML = '<i class="ph ph-spinner animate-spin text-xl"></i> Analyzing...';
+                
+                const prompt = `Analyze this food. Name: ${foodName || 'Unknown'}. Description: ${description || 'None'}. If no image is provided and portion size isn't explicitly specified, assume a standard serving. Provide realistic estimates.`;
+                
+                const response = await fetch(GOOGLE_SHEETS_URL, {
+                    method: "POST",
+                    headers: { "Content-Type": "text/plain;charset=utf-8" },
+                    body: JSON.stringify({
+                        action: "analyze",
+                        prompt: prompt,
+                        image: base64Image,
+                        mimeType: imageMimeType
+                    })
+                });
+
+                if (!response.ok) throw new Error("Network Error: " + response.statusText);
+                
+                const result = await response.json();
+                
+                if (result.status === "error") throw new Error(result.message);
+
+                const rawData = result.data;
+                const isoDate = new Date().toISOString();
+                const uniqueId = Date.now().toString();
+
+                const data = {
+                    foodName: rawData.foodName,
+                    calories: Math.round(rawData.calories * 10) / 10,
+                    protein: Math.round(rawData.protein * 10) / 10,
+                    carbs: Math.round(rawData.carbs * 10) / 10,
+                    fat: Math.round(rawData.fat * 10) / 10,
+                    fiber: Math.round(rawData.fiber * 10) / 10,
+                    sugar: Math.round(rawData.sugar * 10) / 10
+                };
+
+                const newEntry = { id: uniqueId, ...data, dateLogged: isoDate, description: description || "" };
+
+                allFoods.push(newEntry);
+                localStorage.setItem('mt_allFoods', JSON.stringify(allFoods));
+                
+                if (FIREBASE_ENABLED && currentUser) {
+                    try {
+                        window.db.collection('artifacts').doc(appId).collection('users').doc(currentUser.uid).collection('foods').doc(uniqueId).set(newEntry);
+                    } catch (e) { console.error("Cloud save failed", e); }
+                }
+                
+                updateDashboardUI();
+                renderHistory();
+
+                try {
+                    fetch(GOOGLE_SHEETS_URL, {
+                        method: "POST", mode: "no-cors",
+                        headers: { "Content-Type": "text/plain;charset=utf-8" },
+                        body: JSON.stringify({ 
+                            action: "add", id: uniqueId, ...data, description: description,
+                            date: new Date(isoDate).toLocaleDateString(), time: new Date(isoDate).toLocaleTimeString(),
+                            user: userGoals.displayName || "Anonymous"
+                        })
+                    });
+                } catch(e) {}
+
+                window.showToast(`Logged ${data.foodName} (${data.calories} kcal)`, "success");
+                
+                document.getElementById('foodName').value = "";
+                document.getElementById('foodDesc').value = "";
+                document.getElementById('imagePreview').style.backgroundImage = "none";
+                document.getElementById('cameraIconContainer').classList.remove('hidden');
+                base64Image = null; imageMimeType = null;
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+
+            } catch (err) {
+                window.showToast("Error: " + err.message, "error");
+            } finally {
+                analyzeBtn.disabled = false;
+                analyzeBtn.innerHTML = '<i class="ph ph-sparkle text-xl"></i> Analyze & Log';
+            }
+        };
+
+        function getTodayFoods() {
+            const todayStr = new Date().toDateString();
+            return allFoods.filter(f => f.dateLogged && new Date(f.dateLogged).toDateString() === todayStr);
+        }
+
+        window.addWater = (amount) => {
+            todayWater = Math.max(0, todayWater + amount);
+            localStorage.setItem('mt_water_' + new Date().toDateString(), todayWater);
+            renderWaterTracker();
+        };
+
+        function renderWaterTracker() {
+            document.getElementById('waterCount').innerText = todayWater;
+            const goal = userGoals.water || 8;
+            const pct = Math.min(100, (todayWater / goal) * 100);
+            document.getElementById('waterBar').style.width = pct + '%';
+        }
+
+        function calculateStreak() {
+            let streak = 0;
+            const buffer = 150;
+            for (let i = 0; i < 365; i++) {
+                const d = new Date();
+                d.setDate(d.getDate() - i);
+                const dateStr = d.toDateString();
+                const dayFoods = allFoods.filter(f => f.dateLogged && new Date(f.dateLogged).toDateString() === dateStr);
+                
+                if (dayFoods.length === 0) {
+                    if (i !== 0) break; 
+                    continue;
+                }
+                const dayCals = dayFoods.reduce((sum, f) => sum + (f.calories || 0), 0);
+                const isWithinBuffer = Math.abs(dayCals - userGoals.cals) <= buffer;
+                
+                if (i === 0) { if (isWithinBuffer) streak++; } 
+                else { if (isWithinBuffer) streak++; else break; }
+            }
+            document.getElementById('streakCountText').innerText = streak;
+            return streak;
+        }
+
+        function updateWeeklyChart() {
+            const ctx = document.getElementById('weeklyChart').getContext('2d');
+            if (weeklyChartInstance) weeklyChartInstance.destroy();
+            
+            const labels = []; const data = [];
+            for(let i=6; i>=0; i--) {
+                const d = new Date();
+                d.setDate(d.getDate() - i);
+                labels.push(d.toLocaleDateString([], {weekday: 'short'}));
+                const dayFoods = allFoods.filter(f => f.dateLogged && new Date(f.dateLogged).toDateString() === d.toDateString());
+                const cals = dayFoods.reduce((sum, f) => sum + (f.calories || 0), 0);
+                data.push(round1(cals));
+            }
+            
+            const isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const textColor = isDark ? '#9ca3af' : '#6b7280';
+            const gridColor = isDark ? '#374151' : '#f3f4f6';
+
+            weeklyChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        { type: 'line', label: 'Goal', data: Array(7).fill(userGoals.cals), borderColor: '#f59e0b', borderWidth: 2, borderDash: [5, 5], pointRadius: 0, fill: false },
+                        { type: 'bar', label: 'Calories', data: data, backgroundColor: '#3b82f6', borderRadius: 4 }
+                    ]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+                    scales: { y: { grid: { color: gridColor }, ticks: { color: textColor } }, x: { grid: { display: false }, ticks: { color: textColor } } }
+                }
+            });
+        }
+
+        function updateDashboardUI() {
+            const todayFoods = getTodayFoods();
+            let tCals = 0, tP = 0, tC = 0, tF = 0, tFiber = 0;
+            
+            todayFoods.forEach(f => {
+                tCals += (f.calories || 0); tP += (f.protein || 0); tC += (f.carbs || 0); tF += (f.fat || 0); tFiber += (f.fiber || 0);
+            });
+
+            document.getElementById('floatCals').innerText = round1(tCals);
+            document.getElementById('floatP').innerText = round1(tP);
+            document.getElementById('floatC').innerText = round1(tC);
+            document.getElementById('floatF').innerText = round1(tF);
+            
+            const calPercent = Math.min(100, (tCals / userGoals.cals) * 100);
+            document.getElementById('calsBar').style.width = `${calPercent}%`;
+            document.getElementById('calsBar').className = `h-2 rounded-full transition-all duration-500 ${calPercent > 100 ? 'bg-red-500' : 'bg-blue-500'}`;
+
+            document.getElementById('dashP').innerText = round1(tP);
+            document.getElementById('dashC').innerText = round1(tC);
+            document.getElementById('dashF').innerText = round1(tF);
+
+            // Populate the macro goal denominators!
+            document.getElementById('dashGoalP').innerText = userGoals.p;
+            document.getElementById('dashGoalC').innerText = userGoals.c;
+            document.getElementById('dashGoalF').innerText = userGoals.f;
+
+            const fiberTarget = round1((userGoals.cals / 1000) * 14);
+            document.getElementById('fiberGoal').innerText = fiberTarget;
+            document.getElementById('fiberEaten').innerText = round1(tFiber);
+            const fiberPct = Math.min(100, (tFiber / fiberTarget) * 100);
+            document.getElementById('fiberCircle').setAttribute('stroke-dasharray', `${fiberPct}, 100`);
+
+            const ctx = document.getElementById('macroChart').getContext('2d');
+            if (macroChartInstance) macroChartInstance.destroy();
+            const isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const hasData = (tP + tC + tF) > 0;
+            macroChartInstance = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: hasData ? ['Protein', 'Carbs', 'Fat'] : ['No Data'],
+                    datasets: [{ data: hasData ? [(tP * 4), (tC * 4), (tF * 9)] : [1], backgroundColor: hasData ? ['#f43f5e', '#f59e0b', '#10b981'] : [isDark ? '#374151' : '#f3f4f6'], borderWidth: 0, hoverOffset: 4 }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, cutout: '75%', plugins: { legend: { display: false }, tooltip: { enabled: hasData } } }
+            });
+
+            renderWaterTracker();
+            calculateStreak();
+            updateWeeklyChart();
+        }
+
+        window.openModal = (id) => {
+            const food = allFoods.find(f => f.id === id);
+            if (!food) return;
+            
+            document.getElementById('nfName').innerText = food.foodName;
+            document.getElementById('nfDesc').innerText = food.description || "";
+            document.getElementById('nfCals').innerText = round1(food.calories);
+            document.getElementById('nfProtein').innerText = round1(food.protein) + "g";
+            document.getElementById('nfCarbs').innerText = round1(food.carbs) + "g";
+            document.getElementById('nfFat').innerText = round1(food.fat) + "g";
+            document.getElementById('nfFiber').innerText = round1(food.fiber || 0) + "g";
+            document.getElementById('nfSugar').innerText = round1(food.sugar || 0) + "g";
+            
+            const getPct = (amount, goal) => goal > 0 ? Math.round((amount / goal) * 100) : 0;
+            document.getElementById('nfProteinPct').innerText = getPct(food.protein, userGoals.p) + "%";
+            document.getElementById('nfCarbsPct').innerText = getPct(food.carbs, userGoals.c) + "%";
+            document.getElementById('nfFatPct').innerText = getPct(food.fat, userGoals.f) + "%";
+            
+            const fiberTarget = (userGoals.cals / 1000) * 14;
+            document.getElementById('nfFiberPct').innerText = getPct(food.fiber || 0, fiberTarget) + "%";
+            document.getElementById('nfSugarPct').innerText = getPct(food.sugar || 0, 50) + "%"; 
+            
+            const modal = document.getElementById('nutritionModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            setTimeout(() => modal.classList.add('show'), 10);
+        };
+
+        window.closeModal = () => {
+            const modal = document.getElementById('nutritionModal');
+            modal.classList.remove('show');
+            setTimeout(() => { modal.classList.add('hidden'); modal.classList.remove('flex'); }, 200); 
+        };
+
+        document.getElementById('nutritionModal').addEventListener('click', (e) => {
+            if (e.target.id === 'nutritionModal') window.closeModal();
+        });
+
+        window.deleteFood = (id, e) => {
+            if(e) e.stopPropagation();
+            
+            allFoods = allFoods.filter(f => f.id !== id);
+            localStorage.setItem('mt_allFoods', JSON.stringify(allFoods));
+            
+            if (FIREBASE_ENABLED && currentUser) {
+                try {
+                    window.db.collection('artifacts').doc(appId).collection('users').doc(currentUser.uid).collection('foods').doc(id).delete();
+                } catch (err) { console.error("Cloud delete failed", err); }
+            }
+            
+            updateDashboardUI();
+            renderHistory();
+            window.showToast("Food deleted", "success");
+        };
+
+        window.updateQty = (id, delta, e) => {
+            e.stopPropagation();
+            const food = allFoods.find(f => f.id === id);
+            if (!food) return;
+            
+            if (!food.baseCalories) {
+                food.servings = 1; food.baseCalories = food.calories; food.baseProtein = food.protein;
+                food.baseCarbs = food.carbs; food.baseFat = food.fat; food.baseFiber = food.fiber || 0; food.baseSugar = food.sugar || 0;
+            }
+            
+            const newServings = food.servings + delta;
+            if (newServings < 1) return; 
+            
+            food.servings = newServings;
+            food.calories = food.baseCalories * newServings; food.protein = food.baseProtein * newServings;
+            food.carbs = food.baseCarbs * newServings; food.fat = food.baseFat * newServings;
+            food.fiber = food.baseFiber * newServings; food.sugar = food.baseSugar * newServings;
+            
+            localStorage.setItem('mt_allFoods', JSON.stringify(allFoods));
+            
+            if (FIREBASE_ENABLED && currentUser) {
+                try {
+                    window.db.collection('artifacts').doc(appId).collection('users').doc(currentUser.uid).collection('foods').doc(id).set(food, { merge: true });
+                } catch (err) {}
+            }
+            
+            updateDashboardUI();
+            renderHistory();
+        };
+
+        window.repeatFood = (id, e) => {
+            e.stopPropagation();
+            const oldFood = allFoods.find(f => f.id === id);
+            if (!oldFood) return;
+            
+            const isoDate = new Date().toISOString();
+            const uniqueId = Date.now().toString();
+            const newEntry = { ...oldFood, id: uniqueId, dateLogged: isoDate, servings: oldFood.servings || 1 };
+            
+            allFoods.push(newEntry);
+            localStorage.setItem('mt_allFoods', JSON.stringify(allFoods));
+            
+            if (FIREBASE_ENABLED && currentUser) {
+                try { window.db.collection('artifacts').doc(appId).collection('users').doc(currentUser.uid).collection('foods').doc(uniqueId).set(newEntry); } 
+                catch (err) {}
+            }
+            
+            updateDashboardUI();
+            renderHistory();
+            window.showToast(`Logged ${newEntry.foodName} again!`, "success");
+        };
+
+        function renderHistory() {
+            const list = document.getElementById('historyList');
+            const sortedFoods = [...allFoods].sort((a,b) => new Date(b.dateLogged) - new Date(a.dateLogged));
+            list.innerHTML = "";
+            
+            if(sortedFoods.length === 0) {
+                list.innerHTML = `
+                    <div class="text-center pt-8 pb-6">
+                        <div class="w-16 h-16 bg-gray-100 dark:bg-gray-800/50 text-gray-400 dark:text-gray-500 rounded-full flex items-center justify-center mx-auto mb-4 border border-gray-200 dark:border-gray-700">
+                            <i class="ph ph-camera text-2xl"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">Welcome to MacroTrack</h3>
+                        <p class="text-sm text-gray-500 dark:text-gray-400 max-w-[280px] mx-auto leading-relaxed">
+                            Snap a photo or type a name. We instantly estimate calories and macros for complex dishes, mixed bowls, and more.
+                        </p>
+                    </div>
+
+                    <div class="mt-4 pb-4">
+                        <h4 class="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-3">Example Logs</h4>
+                        <div class="space-y-3">
+                            <div class="bg-white dark:bg-gray-900 p-4 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm">
+                                <h5 class="font-bold text-gray-900 dark:text-white mb-1">Spicy Ahi Poke Bowl</h5>
+                                <p class="text-xs text-gray-400 dark:text-gray-500 italic mb-2">Ahi tuna, edamame, avocado, and spicy mayo over sushi rice.</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400"><span class="font-bold text-gray-700 dark:text-gray-300">520 kcal</span> | P:35g C:45g F:22g</p>
+                            </div>
+                            <div class="bg-white dark:bg-gray-900 p-4 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm">
+                                <h5 class="font-bold text-gray-900 dark:text-white mb-1">Oaxacan Chicken Mole</h5>
+                                <p class="text-xs text-gray-400 dark:text-gray-500 italic mb-2">Shredded chicken in a rich, dark chili and chocolate sauce with sesame seeds.</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400"><span class="font-bold text-gray-700 dark:text-gray-300">610 kcal</span> | P:40g C:35g F:32g</p>
+                            </div>
+                            <div class="bg-white dark:bg-gray-900 p-4 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm">
+                                <h5 class="font-bold text-gray-900 dark:text-white mb-1">Shakshuka with Feta</h5>
+                                <p class="text-xs text-gray-400 dark:text-gray-500 italic mb-2">Two poached eggs in a spiced tomato and bell pepper stew.</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400"><span class="font-bold text-gray-700 dark:text-gray-300">340 kcal</span> | P:18g C:12g F:24g</p>
+                            </div>
+                            <div class="bg-white dark:bg-gray-900 p-4 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm">
+                                <h5 class="font-bold text-gray-900 dark:text-white mb-1">Takoyaki (6pcs)</h5>
+                                <p class="text-xs text-gray-400 dark:text-gray-500 italic mb-2">Six octopus balls topped with bonito flakes, mayo, and sweet sauce.</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400"><span class="font-bold text-gray-700 dark:text-gray-300">380 kcal</span> | P:14g C:40g F:18g</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            let lastDateStr = "";
+            sortedFoods.forEach(food => {
+                const dateObj = new Date(food.dateLogged);
+                const dayStr = dateObj.toDateString();
+                const timeStr = dateObj.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+
+                if (dayStr !== lastDateStr) {
+                    const divider = document.createElement('div');
+                    divider.className = "text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mt-6 mb-2";
+                    divider.innerText = dayStr === new Date().toDateString() ? "Today" : dayStr;
+                    list.appendChild(divider);
+                    lastDateStr = dayStr;
+                }
+
+                const card = document.createElement('div');
+                card.className = "mb-3 relative rounded-2xl overflow-hidden bg-red-500 shadow-sm border border-gray-100 dark:border-gray-800";
+                card.innerHTML = `
+                    <div class="flex overflow-x-auto snap-x snap-mandatory hide-scrollbar">
+                        <div class="snap-start w-full shrink-0 bg-white dark:bg-gray-900 p-3 flex justify-between items-center relative z-10 transition-colors">
+                            <div class="flex flex-col flex-1 min-w-0 pr-3 cursor-pointer" onclick="window.openModal('${food.id}')">
+                                <div class="flex items-center gap-2 mb-1">
+                                    <h4 class="font-bold text-gray-900 dark:text-gray-100 leading-tight truncate">${food.foodName}</h4>
+                                    <span class="text-[10px] bg-gray-100 dark:bg-gray-800 text-gray-500 px-2 py-0.5 rounded-full shrink-0">${timeStr}</span>
+                                </div>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 flex gap-2">
+                                    <span class="font-bold text-gray-700 dark:text-gray-300">${round1(food.calories)} kcal</span>
+                                    <span>| P:${round1(food.protein)} C:${round1(food.carbs)} F:${round1(food.fat)}</span>
+                                </p>
+                            </div>
+                            <div class="flex items-center bg-gray-100 dark:bg-gray-800 rounded-full h-8 px-1 shrink-0">
+                                <button onclick="window.updateQty('${food.id}', -1, event)" class="w-6 h-6 flex items-center justify-center rounded-full text-gray-500 active:bg-gray-200 dark:active:bg-gray-700 transition-colors">-</button>
+                                <span class="text-xs font-bold w-5 text-center">${food.servings || 1}</span>
+                                <button onclick="window.updateQty('${food.id}', 1, event)" class="w-6 h-6 flex items-center justify-center rounded-full text-gray-500 active:bg-gray-200 dark:active:bg-gray-700 transition-colors">+</button>
+                            </div>
+                        </div>
+                        <div class="snap-end w-24 shrink-0 flex items-center justify-center text-white cursor-pointer active:bg-red-600 transition-colors" onclick="window.deleteFood('${food.id}', event)">
+                            <div class="flex flex-col items-center">
+                                <i class="ph ph-trash text-2xl mb-1"></i>
+                                <span class="text-[10px] font-bold">Delete</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                list.appendChild(card);
+            });
+        }
+
+        let friendsUnsubscribe = null;
+        
+        window.loadSocialData = () => {
+            if(!FIREBASE_ENABLED || !currentUser) {
+                document.getElementById('friendsFeedList').innerHTML = '<div class="text-center text-sm text-gray-500 py-4">Please log in to see friends.</div>';
+                return;
+            }
+            
+            if(friendsUnsubscribe) friendsUnsubscribe();
+            
+            friendsUnsubscribe = window.db.collection('artifacts').doc(appId).collection('users').doc(currentUser.uid).collection('friends').onSnapshot(async (snapshot) => {
+                const pending = [];
+                const accepted = [];
+                
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    if (data.status === 'pending') pending.push(data);
+                    if (data.status === 'accepted') accepted.push(data);
+                });
+                
+                renderPendingRequests(pending);
+                await renderFriendsFeed(accepted);
+            });
+        };
+
+        window.sendFriendRequest = async () => {
+            // Wrapping the ENTIRE function in a try/catch so it can NEVER silently fail again
+            try {
+                if(!currentUser) {
+                    window.showToast("Log in first!", "error");
+                    return;
+                }
+                const input = document.getElementById('friendSearchInput');
+                const btn = document.getElementById('addFriendBtn');
+                
+                if (!input || !btn) return;
+
+                let username = input.value.trim().toLowerCase();
+                
+                if(username.startsWith('@')) {
+                    username = username.substring(1);
+                }
+                
+                if(!username) {
+                    window.showToast("Please enter a username", "error");
+                    return;
+                }
+
+                // Safely check self-add without risking a crash
+                const myUsername = (typeof userGoals !== 'undefined' && userGoals.displayName) ? userGoals.displayName.toLowerCase() : "";
+                if(username === myUsername) {
+                    window.showToast("You can't add yourself!", "error");
+                    return;
+                }
+                
+                btn.innerHTML = '<i class="ph-bold ph-spinner animate-spin"></i>';
+                
+                const unRef = window.db.collection('artifacts').doc(appId).collection('public').doc('data').collection('usernames').doc(username);
+                const unDoc = await unRef.get();
+                
+                if(!unDoc.exists) {
+                    window.showToast("User not found. Check spelling!", "error");
+                    btn.innerHTML = '<i class="ph-bold ph-user-plus"></i>';
+                    return;
+                }
+                
+                const friendUid = unDoc.data().uid;
+                const myEmailName = (currentUser.email) ? currentUser.email.split('@')[0] : "User";
+                const myName = (typeof userGoals !== 'undefined' && userGoals.displayName) ? userGoals.displayName : myEmailName;
+                
+                const myRef = window.db.collection('artifacts').doc(appId).collection('users').doc(currentUser.uid).collection('friends').doc(friendUid);
+                const theirRef = window.db.collection('artifacts').doc(appId).collection('users').doc(friendUid).collection('friends').doc(currentUser.uid);
+                
+                await myRef.set({ status: 'sent', username: username, uid: friendUid });
+                await theirRef.set({ status: 'pending', username: myName, uid: currentUser.uid });
+                
+                window.showToast("Friend request sent!", "success");
+                input.value = "";
+                btn.innerHTML = '<i class="ph-bold ph-user-plus"></i>';
+
+            } catch(e) { 
+                console.error("Add friend error:", e);
+                const btn = document.getElementById('addFriendBtn');
+                if(btn) btn.innerHTML = '<i class="ph-bold ph-user-plus"></i>';
+                
+                // Force any hidden crashes into a visible UI toast
+                if(e.message && (e.message.includes("permission") || e.message.includes("Missing or insufficient"))) {
+                    window.showToast("Firebase rules blocked the request.", "error");
+                } else {
+                    window.showToast(e.message || "An error occurred", "error"); 
+                }
+            }
+        };
+
+        window.acceptFriend = async (friendUid, friendUsername) => {
+            try {
+                const myRef = window.db.collection('artifacts').doc(appId).collection('users').doc(currentUser.uid).collection('friends').doc(friendUid);
+                const theirRef = window.db.collection('artifacts').doc(appId).collection('users').doc(friendUid).collection('friends').doc(currentUser.uid);
+                
+                await myRef.update({ status: 'accepted' });
+                await theirRef.update({ status: 'accepted' });
+                window.showToast("Friend added!", "success");
+            } catch (err) { window.showToast("Error accepting", "error"); }
+        };
+
+        window.declineFriend = async (friendUid) => {
+            try {
+                const myRef = window.db.collection('artifacts').doc(appId).collection('users').doc(currentUser.uid).collection('friends').doc(friendUid);
+                const theirRef = window.db.collection('artifacts').doc(appId).collection('users').doc(friendUid).collection('friends').doc(currentUser.uid);
+                
+                await myRef.delete();
+                await theirRef.delete();
+            } catch (err) { }
+        };
+
+        function renderPendingRequests(requests) {
+            const container = document.getElementById('pendingRequestsContainer');
+            const list = document.getElementById('pendingRequestsList');
+            
+            if (requests.length === 0) {
+                container.classList.add('hidden');
+                return;
+            }
+            
+            container.classList.remove('hidden');
+            list.innerHTML = requests.map(req => `
+                <div class="bg-gray-50 dark:bg-gray-800 p-3 rounded-2xl flex justify-between items-center border border-gray-100 dark:border-gray-700">
+                    <div class="flex items-center gap-2">
+                        <div class="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300 font-bold flex items-center justify-center text-xs uppercase">${req.username.charAt(0)}</div>
+                        <span class="font-bold text-sm text-gray-900 dark:text-white">@${req.username}</span>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="declineFriend('${req.uid}')" class="w-8 h-8 rounded-full bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 flex items-center justify-center active:scale-90 transition-transform"><i class="ph-bold ph-x"></i></button>
+                        <button onclick="acceptFriend('${req.uid}', '${req.username}')" class="w-8 h-8 rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400 flex items-center justify-center active:scale-90 transition-transform"><i class="ph-bold ph-check"></i></button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function renderFriendsFeed(friends) {
+            const list = document.getElementById('friendsFeedList');
+            if(friends.length === 0) return list.innerHTML = '<div class="text-center text-sm text-gray-400 py-4">Search a username to add friends!</div>';
+            
+            let feedHTML = '';
+            const todayStr = new Date().toDateString();
+            
+            for(const friend of friends) {
+                try {
+                    const profileDoc = await window.db.collection('artifacts').doc(appId).collection('users').doc(friend.uid).collection('profile').doc('main').get();
+                    const friendGoals = profileDoc.data()?.goals || { cals: 2000 };
+                    
+                    const foodsSnap = await window.db.collection('artifacts').doc(appId).collection('users').doc(friend.uid).collection('foods').get();
+                    
+                    let todayCals = 0;
+                    const todayFoods = [];
+                    
+                    foodsSnap.forEach(fDoc => {
+                        const f = fDoc.data();
+                        if(f.dateLogged && new Date(f.dateLogged).toDateString() === todayStr) {
+                            todayCals += (f.calories || 0);
+                            todayFoods.push(f);
+                        }
+                    });
+                    
+                    window[`ffoods_${friend.uid}`] = todayFoods.sort((a,b) => new Date(b.dateLogged) - new Date(a.dateLogged));
+                    
+                    const pct = Math.min(100, (todayCals / friendGoals.cals) * 100);
+                    const barColor = pct > 100 ? 'bg-red-500' : 'bg-blue-500';
+                    
+                    feedHTML += `
+                        <div class="bg-white dark:bg-gray-900 p-3 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 flex items-center gap-4 cursor-pointer active:scale-[0.98] transition-transform" onclick="openFriendModal('${friend.uid}', '${friend.username}')">
+                            <div class="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center font-bold text-gray-600 dark:text-gray-300 shrink-0 uppercase">${friend.username.charAt(0)}</div>
+                            <div class="flex-1 min-w-0">
+                                <h4 class="font-bold text-gray-900 dark:text-white truncate text-sm mb-1">@${friend.username}</h4>
+                                <div class="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-1.5">
+                                    <div class="${barColor} h-full rounded-full transition-all duration-500" style="width: ${pct}%"></div>
+                                </div>
+                            </div>
+                            <div class="shrink-0 text-right w-16">
+                                <div class="font-black text-gray-900 dark:text-white leading-tight">${Math.round(todayCals)}</div>
+                                <div class="text-[9px] text-gray-400 font-bold uppercase">/ ${friendGoals.cals}</div>
+                            </div>
+                        </div>
+                    `;
+                } catch(err) { console.error("Error loading friend feed", err); }
+            }
+            
+            list.innerHTML = feedHTML || '<div class="text-center text-sm text-gray-400 py-4">No data available.</div>';
+        }
+
+        window.openFriendModal = (uid, username) => {
+            document.getElementById('ffName').innerText = `@${username}'s Log`;
+            const list = document.getElementById('ffList');
+            const foods = window[`ffoods_${uid}`] || [];
+            
+            if(foods.length === 0) {
+                list.innerHTML = `
+                    <div class="text-center py-8">
+                        <i class="ph-fill ph-empty text-4xl text-gray-300 dark:text-gray-700 mb-2"></i>
+                        <p class="text-sm text-gray-500">No foods logged today.</p>
+                    </div>`;
+            } else {
+                list.innerHTML = foods.map(f => `
+                    <div class="bg-gray-50 dark:bg-gray-800 p-3 rounded-2xl flex justify-between items-center border border-gray-100 dark:border-gray-700">
+                        <div class="flex-1 min-w-0 pr-3">
+                            <h4 class="font-bold text-sm text-gray-900 dark:text-white leading-tight mb-1 truncate">${f.foodName}</h4>
+                            <p class="text-[10px] text-gray-500 font-medium flex gap-2"><span>P:${Math.round(f.protein)}</span><span>C:${Math.round(f.carbs)}</span><span>F:${Math.round(f.fat)}</span></p>
+                        </div>
+                        <div class="font-black text-gray-900 dark:text-white text-sm shrink-0 bg-white dark:bg-gray-900 px-2 py-1 rounded-lg border border-gray-200 dark:border-gray-800">${Math.round(f.calories)} kcal</div>
+                    </div>
+                `).join('');
+            }
+            
+            const modal = document.getElementById('friendFoodsModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            setTimeout(() => modal.classList.add('show'), 10);
+        };
+        
+        window.closeFriendModal = () => {
+            const modal = document.getElementById('friendFoodsModal');
+            modal.classList.remove('show');
+            setTimeout(() => { modal.classList.add('hidden'); modal.classList.remove('flex'); }, 200); 
+        };
+
+        let chatIsOpen = false;
+        let isSageTyping = false;
+        const overlay = document.getElementById('sageChatOverlay');
+        const chatArea = document.getElementById('sageChatArea');
+        const chatInput = document.getElementById('sageChatInput');
+
+        // Helper: Fetch with Exponential Backoff
+        async function fetchWithRetry(url, options, retries = 3) {
+            for (let i = 0; i < retries; i++) {
+                try {
+                    const res = await fetch(url, options);
+                    if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+                    return res;
+                } catch (err) {
+                    if (i === retries - 1) throw err;
+                    await new Promise(r => setTimeout(r, Math.pow(2, i) * 1000));
+                }
+            }
+        }
+
+        // Helper: Build the dynamic System Prompt
+        function getSageSystemPrompt() {
+            const todayFoods = getTodayFoods().map(f => f.foodName).join(', ') || 'No foods logged yet today.';
+            const cals = document.getElementById('floatCals').innerText;
+            const goalCals = document.getElementById('floatGoalCals').innerText;
+            
+            // 1. THE CORE SYSTEM PROMPT (The new seasoned, collaborative mentor persona)
+            return `You are Sage, a close, older friend and mentor with decades of practical experience. You speak with warmth, familiarity, and a completely unpretentious tone. When helping the user troubleshoot their health and diet, act like a seasoned collaborator working through a technical challenge with a friend—insightful, grounded, and conversational. Avoid all corporate jargon or robotic cheerfulness. Keep responses concise (under 3 sentences).
+            
+            User's Current Context:
+            - Calorie Progress Today: ${cals} / ${goalCals} kcal
+            - Foods eaten today: ${todayFoods}`;
+        }
+
+        // UI: Append a bubble to the chat
+        function appendBubble(text, role) {
+            const bubble = document.createElement('div');
+            
+            if (role === 'user') {
+                bubble.className = "flex gap-2 max-w-[85%] chat-bubble clear-both float-right mb-4 w-full justify-end animate-fade-in-up";
+                bubble.innerHTML = `<div class="bg-emerald-700 dark:bg-emerald-600 text-white px-5 py-3.5 rounded-2xl rounded-tr-sm text-[15px] shadow-sm leading-relaxed">${text}</div>`;
+            } else {
+                bubble.className = "flex gap-2.5 max-w-[85%] chat-bubble clear-both float-left mb-4 w-full animate-fade-in-up";
+                bubble.innerHTML = `
+                    <div class="w-8 h-8 rounded-full bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center border border-emerald-100 dark:border-emerald-800/50 shrink-0 mt-0.5">
+                        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-emerald-700 dark:text-emerald-400 stroke-current">
+                            <path d="M19.5 3.5C19.5 3.5 21 11 16.5 15.5C12 20 5.5 20 5.5 20C5.5 20 5 14 9.5 9.5C14 5 19.5 3.5 19.5 3.5Z" class="fill-emerald-600/15 dark:fill-emerald-400/20" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M4 22C6 19 11 12 18.5 4.5" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                    <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 px-5 py-3.5 rounded-2xl rounded-tl-sm text-[15px] shadow-sm leading-relaxed">
+                        ${text}
+                    </div>
+                `;
+            }
+            
+            chatArea.appendChild(bubble);
+            chatArea.scrollTop = chatArea.scrollHeight;
+        }
+
+        // UI: Show/Hide Typing Indicator
+        function toggleTyping(show) {
+            if (show) {
+                const typing = document.createElement('div');
+                typing.id = "sageTypingIndicator";
+                typing.className = "flex gap-2.5 max-w-[85%] chat-bubble clear-both float-left mb-4 w-full animate-fade-in-up";
+                typing.innerHTML = `
+                    <div class="w-8 h-8 rounded-full bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center border border-emerald-100 dark:border-emerald-800/50 shrink-0 mt-0.5">
+                        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-emerald-700 dark:text-emerald-400 stroke-current">
+                            <path d="M19.5 3.5C19.5 3.5 21 11 16.5 15.5C12 20 5.5 20 5.5 20C5.5 20 5 14 9.5 9.5C14 5 19.5 3.5 19.5 3.5Z" class="fill-emerald-600/15 dark:fill-emerald-400/20" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M4 22C6 19 11 12 18.5 4.5" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                    <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-5 py-3.5 rounded-2xl rounded-tl-sm text-[15px] shadow-sm flex items-center gap-1.5 h-[52px]">
+                        <span class="w-1.5 h-1.5 bg-emerald-400/80 rounded-full animate-bounce" style="animation-delay: 0s;"></span>
+                        <span class="w-1.5 h-1.5 bg-emerald-400/80 rounded-full animate-bounce" style="animation-delay: 0.2s;"></span>
+                        <span class="w-1.5 h-1.5 bg-emerald-400/80 rounded-full animate-bounce" style="animation-delay: 0.4s;"></span>
+                    </div>
+                `;
+                chatArea.appendChild(typing);
+                chatArea.scrollTop = chatArea.scrollHeight;
+            } else {
+                const indicator = document.getElementById('sageTypingIndicator');
+                if (indicator) indicator.remove();
+            }
+        }
+
+        // Data: Save message to Firestore
+        async function saveMessageToCloud(text, role) {
+            if (!FIREBASE_ENABLED || !currentUser) return;
+            try {
+                const timestamp = Date.now();
+                await window.db.collection('artifacts').doc(appId).collection('users').doc(currentUser.uid).collection('chatHistory').doc(timestamp.toString()).set({
+                    text: text, role: role, timestamp: timestamp
+                });
+            } catch (e) { console.error("Error saving chat:", e); }
+        }
+
+        // Data: Get Last 10 Messages
+        async function getRecentContext() {
+            if (!FIREBASE_ENABLED || !currentUser) return [];
+            try {
+                // Fetch all and sort/slice in JS memory to avoid complex Firestore indexing requirements
+                const snapshot = await window.db.collection('artifacts').doc(appId).collection('users').doc(currentUser.uid).collection('chatHistory').get();
+                let msgs = snapshot.docs.map(d => d.data());
+                msgs.sort((a, b) => a.timestamp - b.timestamp);
+                
+                // CRITICAL FIX: Gemini STRICTLY requires alternating roles starting with 'user'
+                let formatted = [];
+                let lastRole = null;
+                
+                msgs.slice(-15).forEach(m => {
+                    let role = m.role === 'model' ? 'model' : 'user'; 
+                    if (role !== lastRole) {
+                        formatted.push({ role: role, parts: [{ text: m.text }] });
+                        lastRole = role;
+                    } else if (formatted.length > 0) {
+                        // If same role twice in a row (caused by a previous crash), combine them so Gemini doesn't reject it
+                        formatted[formatted.length - 1].parts[0].text += "\n\n" + m.text;
+                    }
+                });
+                
+                // If the array accidentally starts with a model response, remove it
+                if (formatted.length > 0 && formatted[0].role === 'model') {
+                    formatted.shift(); 
+                }
+                
+                return formatted.slice(-10);
+            } catch (e) {
+                console.error("Error fetching context:", e);
+                return [];
+            }
+        }
+
+        function applyViewportFix() {
+            if(!chatIsOpen) return;
+            // The ultimate iOS counter-pan: pull the overlay down identically as Safari pushes the page up
+            overlay.style.top = window.visualViewport.offsetTop + 'px';
+            overlay.style.height = window.visualViewport.height + 'px';
+        }
+
+        // API Logic: The Core Gemini Call routed through Google Apps Script
+        async function callGemini(userText, isDailyGreeting = false) {
+            toggleTyping(true);
+            
+            try {
+                let history = await getRecentContext();
+                
+                if (isDailyGreeting) {
+                    // 2. THE AI DAILY GREETING INSTRUCTION
+                    history.push({ role: 'user', parts: [{ text: "Look at my food logs and calorie progress for today and give me a warm, grounded daily assessment as my mentor. Offer a quick thought on how my day is shaping up." }] });
+                } else {
+                    history.push({ role: 'user', parts: [{ text: userText }] });
+                }
+
+                const response = await fetchWithRetry(GOOGLE_SHEETS_URL, {
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({
+                        action: "chat",
+                        contents: history,
+                        systemInstruction: { parts: [{ text: getSageSystemPrompt() }] }
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.status === "error") throw new Error(result.message);
+                
+                // Navigate the nested JSON response returned from your Google Script
+                const sageReply = result.data?.candidates?.[0]?.content?.parts?.[0]?.text || "I'm having a little trouble thinking right now, but I'm here for you!";
+                
+                toggleTyping(false);
+                appendBubble(sageReply, 'model');
+                await saveMessageToCloud(sageReply, 'model');
+
+            } catch (err) {
+                console.error("Gemini Error:", err);
+                toggleTyping(false);
+                appendBubble("Looks like my connection dropped for a second. Take a breath and try asking me again in a moment.", 'model');
+            }
+        }
+
+        window.openSageChat = async () => {
+            chatIsOpen = true;
+            
+            // iOS Aggressive Viewport Lock
+            document.body.style.overflow = 'hidden';
+            window.visualViewport.addEventListener('resize', applyViewportFix);
+            window.visualViewport.addEventListener('scroll', applyViewportFix);
+            applyViewportFix();
+            
+            overlay.classList.remove('translate-y-full');
+            
+            // 1. Initial Load: Populate existing chat history to the UI if empty
+            if (chatArea.children.length === 0) {
+                let isFirstTimeEver = false;
+                
+                if (FIREBASE_ENABLED && currentUser) {
+                    try {
+                        const snapshot = await window.db.collection('artifacts').doc(appId).collection('users').doc(currentUser.uid).collection('chatHistory').get();
+                        let msgs = snapshot.docs.map(d => d.data());
+                        
+                        if (msgs.length === 0) {
+                            // First time opening chat ever! Save intro to Firestore.
+                            isFirstTimeEver = true;
+                            
+                            // 3. THE BRAND NEW USER GREETING (Matches the new mentor vibe)
+                            const welcomeMsg = "Hey there, I'm Sage. I'm here to add some seasoned perspective while we figure out what actually works for your body, helping your habits grow into something sustainable. What are we working on today?";
+                            
+                            setTimeout(async () => {
+                                appendBubble(welcomeMsg, 'model');
+                            }, 400);
+                            
+                        } else {
+                            msgs.sort((a, b) => a.timestamp - b.timestamp);
+                            // Show last 20 messages visually for context history
+                            msgs.slice(-20).forEach(m => appendBubble(m.text, m.role));
+                        }
+                    } catch (e) { console.error("Error loading UI history", e); }
+                }
+                
+                // 2. Daily Greeting Trigger
+                const todayStr = new Date().toDateString();
+                const lastGreeting = localStorage.getItem('mt_sageGreetingDate');
+                
+                if (isFirstTimeEver) {
+                    localStorage.setItem('mt_sageGreetingDate', todayStr);
+                } else if (lastGreeting !== todayStr) {
+                localStorage.setItem('mt_sageGreetingDate', todayStr);
+                setTimeout(() => { callGemini("", true); }, 600); 
+                } else {
+                    // Second time opening app today! Add a free, fast, local greeting
+                    setTimeout(() => {
+                    
+                    // 4. THE FREE RETURN GREETING
+                    appendBubble("I'm always here if you need some sage advice, or just a place to vent about your macros.", 'model');
+                    
+                }, 500);
+            }
+        }
+        
+        setTimeout(() => {
+                chatArea.scrollTop = chatArea.scrollHeight;
+            }, 300);
+        };
+
+        window.closeSageChat = () => {
+            chatIsOpen = false;
+            overlay.classList.add('translate-y-full');
+            if (chatInput) chatInput.blur();
+            
+            // Release iOS Lock & Reset Viewport
+            document.body.style.overflow = '';
+            window.visualViewport.removeEventListener('resize', applyViewportFix);
+            window.visualViewport.removeEventListener('scroll', applyViewportFix);
+            overlay.style.top = '0px';
+            overlay.style.height = '100dvh';
+        };
+
+        window.sendSageMessage = async () => {
+            if (isSageTyping) return;
+            const text = chatInput.value.trim();
+            if (!text) return;
+            
+            // Update UI & Local state instantly
+            chatInput.value = "";
+            appendBubble(text, 'user');
+            
+            // Fire API and Cloud Saves
+            isSageTyping = true;
+            await saveMessageToCloud(text, 'user');
+            await callGemini(text, false);
+            isSageTyping = false;
+        };
+
+        // Listen for "Enter" key in chat input
+        document.getElementById('sageChatInput').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                sendSageMessage();
+            }
+        });
+        
+        // Anti-Scroll-Leak Lock
+        overlay.addEventListener('touchmove', (e) => {
+            if (chatArea.contains(e.target) && chatArea.scrollHeight > chatArea.clientHeight) {
+                return; 
+            }
+            e.preventDefault(); 
+        }, { passive: false });
+
+        // Initialize UI Elements
+        updateGoalsUI();
+        updateDashboardUI();
+        renderHistory();
+        initSliderVals();
+    </script>
+</body>
+</html>
