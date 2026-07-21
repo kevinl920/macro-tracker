@@ -1306,7 +1306,7 @@
                 f = Math.round((targetCals * 0.30) / 9);
                 c = Math.round((targetCals - (p * 4) - (f * 9)) / 4);
                 
-                window.userGoals.cals = targetCals;
+                userGoals.cals = targetCals;
             } else {
                 // Apple Health Mode
                 const resting = parseFloat(document.getElementById('calcResting').value);
@@ -1324,34 +1324,36 @@
                 c = Math.round((targetCals * 0.40) / 4);
                 f = Math.round((targetCals * 0.30) / 9);
 
-                window.userGoals.cals = targetCals;
+                userGoals.cals = targetCals;
             }
 
             // 1. Math check to force exactly 100% for the sliders
-            let p_pct = Math.round((p * 4) / window.userGoals.cals * 100);
-            let c_pct = Math.round((c * 4) / window.userGoals.cals * 100);
+            let p_pct = Math.round((p * 4) / userGoals.cals * 100);
+            let c_pct = Math.round((c * 4) / userGoals.cals * 100);
             let f_pct = 100 - p_pct - c_pct; // Guarantees the total is exactly 100%
 
             // 2. Set the exact grams based on the perfect percentages so all widgets match!
-            window.userGoals.protein = Math.round((window.userGoals.cals * (p_pct / 100)) / 4);
-            window.userGoals.carbs = Math.round((window.userGoals.cals * (c_pct / 100)) / 4);
-            window.userGoals.fat = Math.round((window.userGoals.cals * (f_pct / 100)) / 9);
+            userGoals.protein = Math.round((userGoals.cals * (p_pct / 100)) / 4);
+            userGoals.carbs = Math.round((userGoals.cals * (c_pct / 100)) / 4);
+            userGoals.fat = Math.round((userGoals.cals * (f_pct / 100)) / 9);
 
             // 3. Sync to the global slider variables used by the rest of your app
-            window.sliderVal1 = p_pct;
-            window.sliderVal2 = p_pct + c_pct;
+            sliderVal1 = p_pct;
+            sliderVal2 = p_pct + c_pct;
 
             // 4. Update the Manual Adjustment physical DOM elements
             const manualCalsInput = document.getElementById('goalCals') || document.querySelector('#tab-settings input[type="number"]');
-            if (manualCalsInput) manualCalsInput.value = window.userGoals.cals;
+            if (manualCalsInput) {
+                manualCalsInput.value = userGoals.cals;
+            }
 
             const s1 = document.getElementById('slider1');
             const s2 = document.getElementById('slider2');
-            if (s1) s1.value = window.sliderVal1;
-            if (s2) s2.value = window.sliderVal2;
+            if (s1) s1.value = sliderVal1;
+            if (s2) s2.value = sliderVal2;
 
             // 5. Save everything securely to local storage
-            localStorage.setItem('mt_userGoals', JSON.stringify(window.userGoals));
+            localStorage.setItem('mt_userGoals', JSON.stringify(userGoals));
             
             // 6. NOW it is safe to trigger the UI updates because the DOM and Memory are in perfect harmony
             if (typeof initSliderVals === 'function') initSliderVals(); // Redraws the slider tracks and percentages
