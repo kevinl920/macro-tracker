@@ -318,14 +318,17 @@
         <h1 class="text-xl font-bold text-gray-900 dark:text-white tracking-tight" id="headerTitle">Log Food</h1>
         
         <div class="flex items-center gap-3">
-            <!-- Sage Avatar Button -->
-            <button onclick="openSageChat()" class="sage-mini-btn" aria-label="Ask Sage">
-                <div class="sage-mini pointer-events-none">
-                    <div class="sage-mini-flipper-back"></div>
-                    <div class="sage-mini-shell"></div>
-                    <div class="sage-mini-head"></div>
-                    <div class="sage-mini-flipper"></div>
-                </div>
+            <!-- Sage Avatar Button (Replaced with Minimalist Leaf) -->
+            <button onclick="openSageChat()" aria-label="Ask Sage" class="relative group flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-br from-emerald-50/80 to-emerald-100/50 dark:from-emerald-900/20 dark:to-emerald-800/10 hover:bg-emerald-100 dark:hover:bg-emerald-800/30 transition-all duration-300 border border-emerald-200/60 dark:border-emerald-700/50 shadow-sm active:scale-90">
+                <!-- Custom Minimalist Leaf SVG with Subtle Fill -->
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" class="w-[22px] h-[22px] text-emerald-700 dark:text-emerald-400 stroke-current group-hover:scale-105 transition-transform duration-300">
+                    <!-- Outer leaf curve WITH the subtle soft fill -->
+                    <path d="M19.5 3.5C19.5 3.5 21 11 16.5 15.5C12 20 5.5 20 5.5 20C5.5 20 5 14 9.5 9.5C14 5 19.5 3.5 19.5 3.5Z" class="fill-emerald-600/15 dark:fill-emerald-400/20" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    <!-- Sweeping center vein and stem (no fill) -->
+                    <path d="M4 22C6 19 11 12 18.5 4.5" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <!-- Subtle online indicator -->
+                <span class="absolute top-0 right-0 w-2.5 h-2.5 bg-emerald-500 border-2 border-white dark:border-gray-950 rounded-full animate-pulse shadow-sm"></span>
             </button>
             
             <div class="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-blue-600 dark:text-blue-300 font-bold text-xs uppercase cursor-pointer" id="userAvatar" onclick="document.querySelector('[data-target=\'tab-settings\']').click()">U</div>
@@ -333,29 +336,26 @@
     </header>
 
     <div id="sageChatOverlay" class="fixed top-0 left-0 w-full h-full z-[400] bg-gray-50 dark:bg-gray-950 flex flex-col transform translate-y-full transition-transform duration-300">
-        <!-- Header -->
-        <div class="bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-900/40 dark:to-emerald-800/40 p-4 border-b border-emerald-200 dark:border-emerald-800 flex items-center justify-between shadow-sm transition-colors shrink-0" style="padding-top: max(env(safe-area-inset-top), 1rem);">
+        <!-- Chat Header -->
+        <div class="px-5 py-4 border-b border-gray-200 dark:border-gray-800 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md flex justify-between items-center relative z-10">
             <div class="flex items-center gap-3">
-                <!-- Detailed Sage Avatar Scaled for Header -->
-                <div class="sage-avatar-container" style="transform: scale(0.65); transform-origin: center left; width: 55px; height: 40px;">
-                    <div class="sage-flipper-back"></div>
-                    <div class="sage-belly"></div>
-                    <div class="sage-shell"></div>
-                    <div class="sage-head">
-                        <div class="sage-eye"></div>
-                        <div class="sage-smile"></div>
-                    </div>
-                    <div class="sage-flipper-front"></div>
+                <!-- NEW Minimalist Leaf Avatar for Chat Header -->
+                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-50 to-emerald-100/50 dark:from-emerald-900/30 dark:to-emerald-800/20 flex items-center justify-center border border-emerald-100 dark:border-emerald-800/50">
+                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-emerald-700 dark:text-emerald-400 stroke-current">
+                        <path d="M19.5 3.5C19.5 3.5 21 11 16.5 15.5C12 20 5.5 20 5.5 20C5.5 20 5 14 9.5 9.5C14 5 19.5 3.5 19.5 3.5Z" class="fill-emerald-600/15 dark:fill-emerald-400/20" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M4 22C6 19 11 12 18.5 4.5" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
                 </div>
                 <div>
-                    <h2 class="text-xl font-black text-emerald-900 dark:text-emerald-100 tracking-tight leading-none mb-1">Ask Sage</h2>
-                    <p class="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold uppercase tracking-wider flex items-center gap-1">
+                    <h2 class="text-lg font-bold text-gray-900 dark:text-white leading-tight">Sage</h2>
+                    <p class="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium tracking-wide uppercase flex items-center gap-1.5 mt-0.5">
                         <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Online
                     </p>
                 </div>
             </div>
-            <button onclick="closeSageChat()" class="w-10 h-10 rounded-full bg-white/60 dark:bg-gray-900/60 hover:bg-white dark:hover:bg-gray-800 text-emerald-700 dark:text-emerald-400 flex items-center justify-center transition-colors shadow-sm active:scale-95">
-                <i class="ph-bold ph-caret-down text-xl"></i>
+            
+            <button onclick="closeSageChat()" class="w-9 h-9 rounded-full bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 flex items-center justify-center transition-colors active:scale-90">
+                <i class="ph-bold ph-x text-lg"></i>
             </button>
         </div>
         
@@ -1883,7 +1883,8 @@
             const cals = document.getElementById('floatCals').innerText;
             const goalCals = document.getElementById('floatGoalCals').innerText;
             
-            return `You are Sage, a wise, calm, and supportive sea turtle health mentor. Keep responses short (under 3 sentences), focus on long-term wellness and consistency, and use a soothing, patient tone. Never shame the user.
+            // 1. THE CORE SYSTEM PROMPT (The new seasoned, collaborative mentor persona)
+            return `You are Sage, a close, older friend and mentor with decades of practical experience. You speak with warmth, familiarity, and a completely unpretentious tone. When helping the user troubleshoot their health and diet, act like a seasoned collaborator working through a technical challenge with a friend—insightful, grounded, and conversational. Avoid all corporate jargon or robotic cheerfulness. Keep responses concise (under 3 sentences).
             
             User's Current Context:
             - Calorie Progress Today: ${cals} / ${goalCals} kcal
@@ -1895,16 +1896,18 @@
             const bubble = document.createElement('div');
             
             if (role === 'user') {
-                bubble.className = "flex gap-2 max-w-[85%] chat-bubble clear-both float-right mb-3 w-full justify-end";
-                bubble.innerHTML = `<div class="bg-emerald-500 text-white px-4 py-3 rounded-2xl rounded-tr-sm text-sm shadow-sm leading-relaxed">${text}</div>`;
+                bubble.className = "flex gap-2 max-w-[85%] chat-bubble clear-both float-right mb-4 w-full justify-end animate-fade-in-up";
+                bubble.innerHTML = `<div class="bg-emerald-700 dark:bg-emerald-600 text-white px-5 py-3.5 rounded-2xl rounded-tr-sm text-[15px] shadow-sm leading-relaxed">${text}</div>`;
             } else {
-                bubble.className = "flex gap-2 max-w-[85%] chat-bubble clear-both float-left mb-3 w-full";
+                bubble.className = "flex gap-2.5 max-w-[85%] chat-bubble clear-both float-left mb-4 w-full animate-fade-in-up";
                 bubble.innerHTML = `
-                    <div class="w-7 h-7 shrink-0 flex items-end justify-center mt-1 relative">
-                        <div class="absolute top-1 left-0 w-6 h-5 bg-[#8c423f] border border-[#5a2624] rounded-t-full rounded-bl-sm rounded-br-lg z-10"></div>
-                        <div class="absolute top-2.5 -right-1 w-3.5 h-3 bg-[#a3c065] border border-[#7a9350] rounded-full z-20"></div>
+                    <div class="w-8 h-8 rounded-full bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center border border-emerald-100 dark:border-emerald-800/50 shrink-0 mt-0.5">
+                        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-emerald-700 dark:text-emerald-400 stroke-current">
+                            <path d="M19.5 3.5C19.5 3.5 21 11 16.5 15.5C12 20 5.5 20 5.5 20C5.5 20 5 14 9.5 9.5C14 5 19.5 3.5 19.5 3.5Z" class="fill-emerald-600/15 dark:fill-emerald-400/20" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M4 22C6 19 11 12 18.5 4.5" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
                     </div>
-                    <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 px-4 py-3 rounded-2xl rounded-tl-sm text-sm shadow-sm leading-relaxed">
+                    <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 px-5 py-3.5 rounded-2xl rounded-tl-sm text-[15px] shadow-sm leading-relaxed">
                         ${text}
                     </div>
                 `;
@@ -1919,16 +1922,18 @@
             if (show) {
                 const typing = document.createElement('div');
                 typing.id = "sageTypingIndicator";
-                typing.className = "flex gap-2 max-w-[85%] chat-bubble clear-both float-left mb-3 w-full";
+                typing.className = "flex gap-2.5 max-w-[85%] chat-bubble clear-both float-left mb-4 w-full animate-fade-in-up";
                 typing.innerHTML = `
-                    <div class="w-7 h-7 shrink-0 flex items-end justify-center mt-1 relative">
-                        <div class="absolute top-1 left-0 w-6 h-5 bg-[#8c423f] border border-[#5a2624] rounded-t-full rounded-bl-sm rounded-br-lg z-10"></div>
-                        <div class="absolute top-2.5 -right-1 w-3.5 h-3 bg-[#a3c065] border border-[#7a9350] rounded-full z-20"></div>
+                    <div class="w-8 h-8 rounded-full bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center border border-emerald-100 dark:border-emerald-800/50 shrink-0 mt-0.5">
+                        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-emerald-700 dark:text-emerald-400 stroke-current">
+                            <path d="M19.5 3.5C19.5 3.5 21 11 16.5 15.5C12 20 5.5 20 5.5 20C5.5 20 5 14 9.5 9.5C14 5 19.5 3.5 19.5 3.5Z" class="fill-emerald-600/15 dark:fill-emerald-400/20" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M4 22C6 19 11 12 18.5 4.5" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
                     </div>
-                    <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-4 py-3 rounded-2xl rounded-tl-sm text-sm shadow-sm flex items-center gap-1">
-                        <span class="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-bounce" style="animation-delay: 0s;"></span>
-                        <span class="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-bounce" style="animation-delay: 0.2s;"></span>
-                        <span class="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-bounce" style="animation-delay: 0.4s;"></span>
+                    <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-5 py-3.5 rounded-2xl rounded-tl-sm text-[15px] shadow-sm flex items-center gap-1.5 h-[52px]">
+                        <span class="w-1.5 h-1.5 bg-emerald-400/80 rounded-full animate-bounce" style="animation-delay: 0s;"></span>
+                        <span class="w-1.5 h-1.5 bg-emerald-400/80 rounded-full animate-bounce" style="animation-delay: 0.2s;"></span>
+                        <span class="w-1.5 h-1.5 bg-emerald-400/80 rounded-full animate-bounce" style="animation-delay: 0.4s;"></span>
                     </div>
                 `;
                 chatArea.appendChild(typing);
@@ -2001,7 +2006,8 @@
                 let history = await getRecentContext();
                 
                 if (isDailyGreeting) {
-                    history.push({ role: 'user', parts: [{ text: "Please look at my food logs and calorie progress for today and give me a personalized, short daily greeting as Sage. Remind me I can ask you anything." }] });
+                    // 2. THE AI DAILY GREETING INSTRUCTION
+                    history.push({ role: 'user', parts: [{ text: "Look at my food logs and calorie progress for today and give me a warm, grounded daily assessment as my mentor. Offer a quick thought on how my day is shaping up." }] });
                 } else {
                     history.push({ role: 'user', parts: [{ text: userText }] });
                 }
@@ -2030,11 +2036,11 @@
             } catch (err) {
                 console.error("Gemini Error:", err);
                 toggleTyping(false);
-                appendBubble("Sorry, the currents are a bit rough right now and my connection dropped. Try asking me again in a moment! 🐢", 'model');
+                appendBubble("Looks like my connection dropped for a second. Take a breath and try asking me again in a moment.", 'model');
             }
         }
 
-         window.openSageChat = async () => {
+        window.openSageChat = async () => {
             chatIsOpen = true;
             
             // iOS Aggressive Viewport Lock
@@ -2057,11 +2063,12 @@
                         if (msgs.length === 0) {
                             // First time opening chat ever! Save intro to Firestore.
                             isFirstTimeEver = true;
-                            const welcomeMsg = "Hello. I am Sage. I am here to help you navigate your habits and goals with patience and perspective. The tide rises and falls, but the journey continues. What is on your mind today?";
+                            
+                            // 3. THE BRAND NEW USER GREETING (Matches the new mentor vibe)
+                            const welcomeMsg = "Hey there, I'm Sage. I'm here to add some seasoned perspective while we figure out what actually works for your body, helping your habits grow into something sustainable. What are we working on today?";
                             
                             setTimeout(async () => {
                                 appendBubble(welcomeMsg, 'model');
-                                await saveMessageToCloud(welcomeMsg, 'model');
                             }, 400);
                             
                         } else {
@@ -2079,17 +2086,20 @@
                 if (isFirstTimeEver) {
                     localStorage.setItem('mt_sageGreetingDate', todayStr);
                 } else if (lastGreeting !== todayStr) {
-                    localStorage.setItem('mt_sageGreetingDate', todayStr);
-                    setTimeout(() => { callGemini("", true); }, 600); 
+                localStorage.setItem('mt_sageGreetingDate', todayStr);
+                setTimeout(() => { callGemini("", true); }, 600); 
                 } else {
                     // Second time opening app today! Add a free, fast, local greeting
                     setTimeout(() => {
-                        appendBubble("Welcome back! Ask me anything or tell me what you've eaten.", 'model');
-                    }, 500);
-                }
+                    
+                    // 4. THE FREE RETURN GREETING
+                    appendBubble("I'm always here if you need some sage advice, or just a place to vent about your macros.", 'model');
+                    
+                }, 500);
             }
-            
-            setTimeout(() => {
+        }
+        
+        setTimeout(() => {
                 chatArea.scrollTop = chatArea.scrollHeight;
             }, 300);
         };
