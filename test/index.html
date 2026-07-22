@@ -118,6 +118,10 @@
             .goal-slider::-moz-range-thumb { border-color: #374151; background: #1f2937; }
         }
 
+        .rank-badge-1 { background: linear-gradient(135deg, #f59e0b, #fbbf24); color: #fff; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3); }
+        .rank-badge-2 { background: linear-gradient(135deg, #9ca3af, #cbd5e1); color: #fff; }
+        .rank-badge-3 { background: linear-gradient(135deg, #d97706, #b45309); color: #fff; }
+
         .sage-mini-btn {
             width: 32px;
             height: 32px;
@@ -887,6 +891,21 @@
                             <input type="text" id="friendSearchInput" placeholder="username" class="w-full p-3 pl-8 bg-gray-50 dark:bg-gray-800 rounded-xl outline-none text-gray-900 dark:text-white border border-transparent focus:border-blue-500 lowercase">
                         </div>
                         <button onclick="sendFriendRequest()" id="addFriendBtn" class="bg-blue-600 text-white px-4 rounded-xl font-bold active:scale-95 transition-transform"><i class="ph-bold ph-user-plus"></i></button>
+                    </div>
+                </div>
+
+                <div id="streakLeaderboardSection">
+                    <div class="flex justify-between items-center mb-3">
+                        <h3 class="font-bold text-gray-900 dark:text-white text-sm uppercase tracking-wider text-gray-500 flex items-center gap-1.5">
+                            <i class="ph-fill ph-fire text-orange-500 text-base"></i> Streak Leaderboard
+                        </h3>
+                        <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Swipe &rarr;</span>
+                    </div>
+                    
+                    <div id="streakLeaderboardTrack" class="flex gap-3 overflow-x-auto snap-x snap-mandatory hide-scrollbar py-1">
+                        <div class="shrink-0 snap-center w-full bg-white dark:bg-gray-900 p-4 rounded-2xl border border-gray-100 dark:border-gray-800 text-center text-xs text-gray-400 py-6">
+                            Sign in to compete on the leaderboard!
+                        </div>
                     </div>
                 </div>
                 
@@ -2272,6 +2291,10 @@
             if (e.target.id === 'nutritionModal') window.closeModal();
         });
 
+        document.getElementById('friendFoodsModal').addEventListener('click', (e) => {
+            if (e.target.id === 'friendFoodsModal') window.closeFriendModal();
+        });
+
         window.deleteFood = (id, e) => {
             if(e) e.stopPropagation();
             
@@ -2439,6 +2462,7 @@
         window.loadSocialData = () => {
             if(!FIREBASE_ENABLED || !currentUser) {
                 document.getElementById('friendsFeedList').innerHTML = '<div class="text-center text-sm text-gray-500 py-4">Please log in to see friends.</div>';
+                document.getElementById('streakLeaderboardTrack').innerHTML = '<div class="shrink-0 snap-center w-full bg-white dark:bg-gray-900 p-4 rounded-2xl border border-gray-100 dark:border-gray-800 text-center text-xs text-gray-400 py-6">Sign in to compete on the leaderboard!</div>';
                 return;
             }
             
@@ -2458,6 +2482,154 @@
                 await renderFriendsFeed(accepted);
             });
         };
+
+        function calculateUserStreakFromFoods(foodsList, goalCals) {
+            let streak = 0;
+            const buffer = 150;
+            const targetCals = goalCals || 2000;
+            
+            for (let i = 0; i < 365; i++) {
+                const d = new Date();
+                d.setDate(d.getDate() - i);
+                const dateStr = d.toDateString();
+                const dayFoods = foodsList.filter(f => f.dateLogged && new Date(f.dateLogged).toDateString() === dateStr);
+                
+                if (dayFoods.length === 0) {
+                    if (i !== 0) break;
+                    continue;
+                }
+                const dayCals = dayFoods.reduce((sum, f) => sum + (f.calories || 0), 0);
+                const isWithinBuffer = Math.abs(dayCals - targetCals) <= buffer;
+                
+                if (i === 0) { 
+                    if (isWithinBuffer) streak++; 
+                } else { 
+                    if (isWithinBuffer) streak++; 
+                    else break; 
+                }
+            }
+            return streak;
+        }
+
+        async function renderFriendsFeed(friends) {
+            const list = document.getElementById('friendsFeedList');
+            const leaderboardTrack = document.getElementById('streakLeaderboardTrack');
+            
+            const todayStr = new Date().toDateString();
+            let leaderboardData = [];
+
+            // 1. Include CURRENT USER on the leaderboard
+            const myName = (typeof userGoals !== 'undefined' && userGoals.displayName) ? userGoals.displayName : "You";
+            const myStreak = calculateStreak();
+            leaderboardData.push({
+                uid: currentUser ? currentUser.uid : 'me',
+                username: myName + " (You)",
+                streak: myStreak,
+                isMe: true,
+                avatar: myName.charAt(0).toUpperCase()
+            });
+
+            if(friends.length === 0) {
+                list.innerHTML = '<div class="text-center text-sm text-gray-400 py-4">Search a username to add friends!</div>';
+            } else {
+                let feedHTML = '';
+                
+                for(const friend of friends) {
+                    try {
+                        const profileDoc = await window.db.collection('artifacts').doc(appId).collection('users').doc(friend.uid).collection('profile').doc('main').get();
+                        const friendGoals = profileDoc.data()?.goals || { cals: 2000 };
+                        
+                        const foodsSnap = await window.db.collection('artifacts').doc(appId).collection('users').doc(friend.uid).collection('foods').get();
+                        
+                        let todayCals = 0;
+                        const todayFoods = [];
+                        const allFriendFoods = [];
+                        
+                        foodsSnap.forEach(fDoc => {
+                            const f = fDoc.data();
+                            allFriendFoods.push(f);
+                            if(f.dateLogged && new Date(f.dateLogged).toDateString() === todayStr) {
+                                todayCals += (f.calories || 0);
+                                todayFoods.push(f);
+                            }
+                        });
+                        
+                        window[`ffoods_${friend.uid}`] = todayFoods.sort((a,b) => new Date(b.dateLogged) - new Date(a.dateLogged));
+                        
+                        // Calculate friend streak for leaderboard
+                        const friendStreak = calculateUserStreakFromFoods(allFriendFoods, friendGoals.cals);
+                        leaderboardData.push({
+                            uid: friend.uid,
+                            username: friend.username,
+                            streak: friendStreak,
+                            isMe: false,
+                            avatar: friend.username.charAt(0).toUpperCase()
+                        });
+
+                        const pct = Math.min(100, (todayCals / friendGoals.cals) * 100);
+                        const barColor = pct > 100 ? 'bg-red-500' : 'bg-blue-500';
+                        
+                        feedHTML += `
+                            <div class="bg-white dark:bg-gray-900 p-3 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 flex items-center gap-4 cursor-pointer active:scale-[0.98] transition-transform" onclick="openFriendModal('${friend.uid}', '${friend.username}')">
+                                <div class="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center font-bold text-gray-600 dark:text-gray-300 shrink-0 uppercase">${friend.username.charAt(0)}</div>
+                                <div class="flex-1 min-w-0">
+                                    <h4 class="font-bold text-gray-900 dark:text-white truncate text-sm mb-1">@${friend.username}</h4>
+                                    <div class="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-1.5">
+                                        <div class="${barColor} h-full rounded-full transition-all duration-500" style="width: ${pct}%"></div>
+                                    </div>
+                                </div>
+                                <div class="shrink-0 text-right w-16">
+                                    <div class="font-black text-gray-900 dark:text-white leading-tight">${Math.round(todayCals)}</div>
+                                    <div class="text-[9px] text-gray-400 font-bold uppercase">/ ${friendGoals.cals}</div>
+                                </div>
+                            </div>
+                        `;
+                    } catch(err) { console.error("Error loading friend feed", err); }
+                }
+                
+                list.innerHTML = feedHTML || '<div class="text-center text-sm text-gray-400 py-4">No data available.</div>';
+            }
+
+            // 2. Sort leaderboard by streak descending
+            leaderboardData.sort((a,b) => b.streak - a.streak);
+
+            // 3. Render horizontal snap-scroll leaderboard cards
+            let lbHTML = leaderboardData.map((item, index) => {
+                const rank = index + 1;
+                let badgeClass = "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300";
+                let rankIcon = `#${rank}`;
+
+                if (rank === 1) { badgeClass = "rank-badge-1"; rankIcon = "🥇"; }
+                else if (rank === 2) { badgeClass = "rank-badge-2"; rankIcon = "🥈"; }
+                else if (rank === 3) { badgeClass = "rank-badge-3"; rankIcon = "🥉"; }
+
+                const borderHighlight = item.isMe ? "border-blue-500 dark:border-blue-500 shadow-md ring-2 ring-blue-500/20" : "border-gray-100 dark:border-gray-800";
+
+                return `
+                    <div class="shrink-0 snap-center w-36 bg-white dark:bg-gray-900 p-3.5 rounded-2xl border ${borderHighlight} flex flex-col items-center justify-between relative transition-all active:scale-95 cursor-pointer" ${!item.isMe ? `onclick="openFriendModal('${item.uid}', '${item.username}')"` : ''}>
+                        <!-- Rank Badge -->
+                        <div class="absolute -top-2 -left-1 w-6 h-6 rounded-full ${badgeClass} font-black text-[11px] flex items-center justify-center shadow-sm">
+                            ${rankIcon}
+                        </div>
+                        
+                        <!-- Avatar -->
+                        <div class="w-11 h-11 rounded-full ${item.isMe ? 'bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300' : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200'} font-black flex items-center justify-center text-sm uppercase my-1">
+                            ${item.avatar}
+                        </div>
+
+                        <!-- Username -->
+                        <span class="font-bold text-xs text-gray-900 dark:text-white truncate max-w-full mb-2">@${item.username}</span>
+
+                        <!-- Fire Streak Badge -->
+                        <div class="w-full bg-orange-50 dark:bg-orange-950/40 border border-orange-200/50 dark:border-orange-800/40 rounded-xl py-1 flex items-center justify-center gap-1 text-orange-600 dark:text-orange-400 font-black text-xs">
+                            <i class="ph-fill ph-fire text-sm animate-pulse"></i> ${item.streak} <span class="text-[9px] font-medium text-orange-500/80">days</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            leaderboardTrack.innerHTML = lbHTML;
+        }
 
         window.sendFriendRequest = async () => {
             // Wrapping the ENTIRE function in a try/catch so it can NEVER silently fail again
