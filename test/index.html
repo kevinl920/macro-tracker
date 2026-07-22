@@ -1509,42 +1509,52 @@
             }
         }
 
+        // STREAMING_CHUNK: Foolproof finish logic
         window.finishOnboarding = () => {
-            // 1. Secretly copy all onboarding data to the master inputs in the Settings tab
-            if (window.obMode === 'apple') {
-                window.switchCalcTab('apple'); 
-                document.getElementById('calcResting').value = document.getElementById('obResting').value || 1800;
-                document.getElementById('calcActive').value = document.getElementById('obActive').value || 500;
-            } else {
-                window.switchCalcTab('basic'); 
-                document.getElementById('calcAge').value = document.getElementById('obAge').value || 30;
-                document.getElementById('calcGender').value = document.getElementById('obGender').value || 'M';
-                document.getElementById('calcWeightBasic').value = document.getElementById('obWeight').value || 150;
-                document.getElementById('calcHeight').value = document.getElementById('obHeight').value || 68;
-                document.getElementById('calcActivity').value = document.getElementById('obActivity').value || "1.2";
+            try {
+                // 1. Secretly copy all onboarding data to the master inputs in the Settings tab
+                if (window.obMode === 'apple') {
+                    if(typeof window.switchCalcTab === 'function') window.switchCalcTab('apple'); 
+                    if(document.getElementById('calcResting')) document.getElementById('calcResting').value = document.getElementById('obResting').value || 1800;
+                    if(document.getElementById('calcActive')) document.getElementById('calcActive').value = document.getElementById('obActive').value || 500;
+                } else {
+                    if(typeof window.switchCalcTab === 'function') window.switchCalcTab('basic'); 
+                    if(document.getElementById('calcAge')) document.getElementById('calcAge').value = document.getElementById('obAge').value || 30;
+                    if(document.getElementById('calcGender')) document.getElementById('calcGender').value = document.getElementById('obGender').value || 'M';
+                    if(document.getElementById('calcWeightBasic')) document.getElementById('calcWeightBasic').value = document.getElementById('obWeight').value || 150;
+                    if(document.getElementById('calcHeight')) document.getElementById('calcHeight').value = document.getElementById('obHeight').value || 68;
+                    if(document.getElementById('calcActivity')) document.getElementById('calcActivity').value = document.getElementById('obActivity').value || "1.2";
+                }
+                
+                // 2. Sync slider value safely
+                const newSliderValue = document.getElementById('obGoalSlider')?.value || "0";
+                const targetSlider = document.getElementById('calcGoalSlider');
+                if (targetSlider) {
+                    targetSlider.value = newSliderValue;
+                    // Try native event dispatch
+                    targetSlider.dispatchEvent(new Event('input')); 
+                    // Fallback manual trigger
+                    if (typeof window.updateGoalSlider === 'function') window.updateGoalSlider({target: targetSlider});
+                }
+                
+                // 3. Programmatically trigger the exact same calculation function
+                const recalcBtn = document.getElementById('recalcBtn');
+                if(recalcBtn) recalcBtn.click();
+                
+            } catch (err) {
+                console.error("Error syncing onboarding data:", err);
+            } finally {
+                // 4. GUARANTEED TO RUN: Close the Onboarding Overlay
+                const overlay = document.getElementById('onboardingOverlay');
+                if (overlay) {
+                    overlay.classList.remove('show');
+                    setTimeout(() => {
+                        overlay.classList.add('hidden');
+                        overlay.classList.remove('flex');
+                    }, 300); 
+                }
+                localStorage.setItem('mt_onboarded', 'true');
             }
-            
-            // 2. Sync slider value AND manually trigger the label update function!
-            const newSliderValue = document.getElementById('obGoalSlider').value;
-            document.getElementById('calcGoalSlider').value = newSliderValue;
-            
-            // STREAMING_CHUNK: Force the settings UI to update its visual label
-            if (typeof window.updateGoalSlider === 'function') {
-                window.updateGoalSlider(newSliderValue);
-            }
-            
-            // 3. Programmatically trigger the exact same calculation function
-            document.getElementById('recalcBtn').click();
-            
-            // 4. Close the Onboarding Overlay
-            const overlay = document.getElementById('onboardingOverlay');
-            overlay.classList.remove('show');
-            setTimeout(() => {
-                overlay.classList.add('hidden');
-                overlay.classList.remove('flex');
-            }, 300); 
-            
-            localStorage.setItem('mt_onboarded', 'true');
         };
 
         // Auto-show onboarding on canvas load if not seen yet
@@ -1719,13 +1729,13 @@
             if (!slider) return;
             let val = parseInt(slider.value);
             
-            if (e && (e.type === 'change' || e.type === 'touchend' || e.type === 'mouseup')) {
-                const snapPoints = [-750, -500, -250, 0, 250, 500, 750];
-                for (let snap of snapPoints) {
-                    if (Math.abs(val - snap) <= 125) { val = snap; slider.value = val; break; }
-                }
+            const nearest250 = Math.round(val / 250) * 250;
+            if (Math.abs(val - nearest250) <= 15) {
+                val = nearest250;
+                slider.value = val; // Force physical slider to stick
             }
 
+            // The rest of your code stays exactly the same!
             const lbsPerWeek = Math.abs(val / 500).toFixed(1);
             const modeText = document.getElementById('goalModeText');
             const rateText = document.getElementById('goalRateText');
@@ -1745,7 +1755,6 @@
             if (val < -500 || val > 500) warning.classList.remove('hidden');
             else warning.classList.add('hidden');
         };
-
         function startDrag(e, thumbNum) {
             e.preventDefault();
             draggingThumb = thumbNum;
