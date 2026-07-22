@@ -1529,8 +1529,8 @@
             document.getElementById('calcGoalSlider').value = newSliderValue;
             
             // STREAMING_CHUNK: Force the settings UI to update its visual label
-            if (typeof window.updateSliderLabel === 'function') {
-                window.updateSliderLabel(newSliderValue);
+            if (typeof window.updateGoalSlider === 'function') {
+                window.updateGoalSlider(newSliderValue);
             }
             
             // 3. Programmatically trigger the exact same calculation function
