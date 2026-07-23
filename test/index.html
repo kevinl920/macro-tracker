@@ -2464,44 +2464,70 @@
 
         let friendsUnsubscribe = null;
         
+        // STREAMING_CHUNK: Immediate Leaderboard Rendering & Defensive Data Fetching
         window.loadSocialData = () => {
             const leaderboardTrack = document.getElementById('streakLeaderboardTrack');
             
+            // Render user card immediately so leaderboard is never an empty gap
+            if (leaderboardTrack && (!leaderboardTrack.children.length || leaderboardTrack.innerHTML.trim() === '')) {
+                const myName = (typeof userGoals !== 'undefined' && userGoals && userGoals.displayName) ? userGoals.displayName : "You";
+                let myStreak = 0;
+                try { myStreak = calculateStreak(); } catch(e) {}
+                
+                leaderboardTrack.innerHTML = `
+                    <div class="snap-start shrink-0 w-36 bg-blue-600 text-white p-3.5 rounded-2xl border border-blue-500 shadow-md shadow-blue-500/20 flex flex-col justify-between relative">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-[10px] font-black uppercase tracking-wider bg-white/20 text-white px-2 py-0.5 rounded-full">🥇 1st</span>
+                            <i class="ph-fill ph-fire ${myStreak > 0 ? 'text-amber-300' : 'text-blue-300'} text-lg"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-xs truncate text-white">${myName}</h4>
+                            <div class="text-2xl font-black text-amber-300 leading-none my-1">${myStreak} <span class="text-xs font-normal text-blue-100">Days</span></div>
+                        </div>
+                        <p class="text-[9px] text-blue-100 font-medium truncate">${myStreak > 0 ? 'Active Streak 🔥' : 'No Active Streak'}</p>
+                    </div>
+                `;
+            }
+
             if(!FIREBASE_ENABLED || !currentUser) {
-                if (leaderboardTrack) {
-                    leaderboardTrack.innerHTML = '<div class="shrink-0 snap-center w-full bg-white dark:bg-gray-900 p-4 rounded-2xl border border-gray-100 dark:border-gray-800 text-center text-xs text-gray-400 py-6">Sign in to compete on the leaderboard!</div>';
-                }
                 document.getElementById('friendsFeedList').innerHTML = '<div class="text-center text-sm text-gray-500 py-4">Please log in to see friends.</div>';
                 return;
             }
             
             if(friendsUnsubscribe) friendsUnsubscribe();
             
-            friendsUnsubscribe = window.db.collection('artifacts').doc(appId).collection('users').doc(currentUser.uid).collection('friends').onSnapshot(async (snapshot) => {
-                const pending = [];
-                const accepted = [];
-                
-                snapshot.forEach(doc => {
-                    const data = doc.data();
-                    if (data.status === 'pending') pending.push(data);
-                    if (data.status === 'accepted') accepted.push(data);
+            try {
+                friendsUnsubscribe = window.db.collection('artifacts').doc(appId).collection('users').doc(currentUser.uid).collection('friends').onSnapshot(async (snapshot) => {
+                    const pending = [];
+                    const accepted = [];
+                    
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
+                        if (data && data.status === 'pending') pending.push(data);
+                        if (data && data.status === 'accepted') accepted.push(data);
+                    });
+                    
+                    renderPendingRequests(pending);
+                    await renderFriendsFeed(accepted);
+                }, (err) => {
+                    console.error("Friends snapshot error:", err);
                 });
-                
-                renderPendingRequests(pending);
-                await renderFriendsFeed(accepted);
-            });
+            } catch(e) {
+                console.error("Error setting up friends listener:", e);
+            }
         };
 
         function calculateUserStreakFromFoods(foodsList, goalCals) {
             let streak = 0;
             const buffer = 150;
             const targetCals = goalCals || 2000;
+            if(!foodsList || !Array.isArray(foodsList)) return 0;
             
             for (let i = 0; i < 365; i++) {
                 const d = new Date();
                 d.setDate(d.getDate() - i);
                 const dateStr = d.toDateString();
-                const dayFoods = foodsList.filter(f => f.dateLogged && new Date(f.dateLogged).toDateString() === dateStr);
+                const dayFoods = foodsList.filter(f => f && f.dateLogged && new Date(f.dateLogged).toDateString() === dateStr);
                 
                 if (dayFoods.length === 0) {
                     if (i !== 0) break;
@@ -2520,137 +2546,150 @@
             return streak;
         }
 
-        // STREAMING_CHUNK: Parallelized Friends Feed & Leaderboard Renderer
+        // STREAMING_CHUNK: Robust Multi-User Leaderboard & Friends Feed Renderer
         async function renderFriendsFeed(friends) {
-            const list = document.getElementById('friendsFeedList');
-            const leaderboardTrack = document.getElementById('streakLeaderboardTrack');
-            
-            const todayStr = new Date().toDateString();
-            let leaderboardData = [];
+            try {
+                const list = document.getElementById('friendsFeedList');
+                const leaderboardTrack = document.getElementById('streakLeaderboardTrack');
+                
+                const todayStr = new Date().toDateString();
+                let leaderboardData = [];
 
-            // 1. Include CURRENT USER on the leaderboard
-            const myName = (typeof userGoals !== 'undefined' && userGoals.displayName) ? userGoals.displayName : "You";
-            const myStreak = calculateStreak();
-            leaderboardData.push({
-                uid: currentUser ? currentUser.uid : 'me',
-                username: myName,
-                streak: myStreak,
-                isMe: true,
-                avatar: myName.charAt(0).toUpperCase()
-            });
+                // 1. Include CURRENT USER on the leaderboard
+                const myName = (typeof userGoals !== 'undefined' && userGoals && userGoals.displayName) ? userGoals.displayName : "You";
+                let myStreak = 0;
+                try { myStreak = calculateStreak(); } catch(e) {}
 
-            if(friends.length === 0) {
-                list.innerHTML = '<div class="text-center text-sm text-gray-400 py-4">Search a username to add friends!</div>';
-            } else {
-                // Parallel fetch for all friend profile and food records
-                const friendPromises = friends.map(async (friend) => {
-                    try {
-                        const [profileDoc, foodsSnap] = await Promise.all([
-                            window.db.collection('artifacts').doc(appId).collection('users').doc(friend.uid).collection('profile').doc('main').get(),
-                            window.db.collection('artifacts').doc(appId).collection('users').doc(friend.uid).collection('foods').get()
-                        ]);
-
-                        const friendGoals = profileDoc.data()?.goals || { cals: 2000 };
-                        let todayCals = 0;
-                        const todayFoods = [];
-                        const allFriendFoods = [];
-
-                        foodsSnap.forEach(fDoc => {
-                            const f = fDoc.data();
-                            allFriendFoods.push(f);
-                            if(f.dateLogged && new Date(f.dateLogged).toDateString() === todayStr) {
-                                todayCals += (f.calories || 0);
-                                todayFoods.push(f);
-                            }
-                        });
-
-                        window[`ffoods_${friend.uid}`] = todayFoods.sort((a,b) => new Date(b.dateLogged) - new Date(a.dateLogged));
-                        const friendStreak = calculateUserStreakFromFoods(allFriendFoods, friendGoals.cals);
-
-                        return {
-                            friend,
-                            friendGoals,
-                            todayCals,
-                            friendStreak
-                        };
-                    } catch(err) {
-                        console.error("Error fetching friend:", friend.username, err);
-                        return null;
-                    }
+                leaderboardData.push({
+                    uid: currentUser ? currentUser.uid : 'me',
+                    username: myName,
+                    streak: myStreak,
+                    isMe: true,
+                    avatar: (myName.charAt(0) || 'Y').toUpperCase()
                 });
 
-                const friendResults = await Promise.all(friendPromises);
+                if(!friends || friends.length === 0) {
+                    if (list) list.innerHTML = '<div class="text-center text-sm text-gray-400 py-4">Search a username to add friends!</div>';
+                } else {
+                    const friendPromises = friends.map(async (friend) => {
+                        try {
+                            const friendUid = friend.uid;
+                            const friendUsername = friend.username || 'Friend';
+                            
+                            const [profileDoc, foodsSnap] = await Promise.all([
+                                window.db.collection('artifacts').doc(appId).collection('users').doc(friendUid).collection('profile').doc('main').get(),
+                                window.db.collection('artifacts').doc(appId).collection('users').doc(friendUid).collection('foods').get()
+                            ]);
 
-                let feedHTML = '';
-                friendResults.forEach(res => {
-                    if(!res) return;
-                    const { friend, friendGoals, todayCals, friendStreak } = res;
+                            const friendGoals = profileDoc.data()?.goals || { cals: 2000 };
+                            let todayCals = 0;
+                            const todayFoods = [];
+                            const allFriendFoods = [];
 
-                    leaderboardData.push({
-                        uid: friend.uid,
-                        username: friend.username,
-                        streak: friendStreak,
-                        isMe: false,
-                        avatar: friend.username.charAt(0).toUpperCase()
+                            if (foodsSnap && foodsSnap.forEach) {
+                                foodsSnap.forEach(fDoc => {
+                                    const f = fDoc.data();
+                                    if(f) {
+                                        allFriendFoods.push(f);
+                                        if(f.dateLogged && new Date(f.dateLogged).toDateString() === todayStr) {
+                                            todayCals += (f.calories || 0);
+                                            todayFoods.push(f);
+                                        }
+                                    }
+                                });
+                            }
+
+                            window[`ffoods_${friendUid}`] = todayFoods.sort((a,b) => new Date(b.dateLogged) - new Date(a.dateLogged));
+                            const friendStreak = calculateUserStreakFromFoods(allFriendFoods, friendGoals.cals);
+
+                            return {
+                                friend: { ...friend, username: friendUsername },
+                                friendGoals,
+                                todayCals,
+                                friendStreak
+                            };
+                        } catch(err) {
+                            console.error("Error fetching friend:", friend?.username, err);
+                            return null;
+                        }
                     });
 
-                    const pct = Math.min(100, (todayCals / friendGoals.cals) * 100);
-                    const barColor = pct > 100 ? 'bg-red-500' : 'bg-blue-500';
+                    const friendResults = await Promise.all(friendPromises);
 
-                    feedHTML += `
-                        <div class="bg-white dark:bg-gray-900 p-3 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 flex items-center gap-4 cursor-pointer active:scale-[0.98] transition-transform" onclick="openFriendModal('${friend.uid}', '${friend.username}')">
-                            <div class="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center font-bold text-gray-600 dark:text-gray-300 shrink-0 uppercase">${friend.username.charAt(0)}</div>
-                            <div class="flex-1 min-w-0">
-                                <h4 class="font-bold text-gray-900 dark:text-white truncate text-sm mb-1">@${friend.username}</h4>
-                                <div class="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-1.5">
-                                    <div class="${barColor} h-full rounded-full transition-all duration-500" style="width: ${pct}%"></div>
+                    let feedHTML = '';
+                    friendResults.forEach(res => {
+                        if(!res) return;
+                        const { friend, friendGoals, todayCals, friendStreak } = res;
+
+                        leaderboardData.push({
+                            uid: friend.uid,
+                            username: friend.username,
+                            streak: friendStreak,
+                            isMe: false,
+                            avatar: (friend.username.charAt(0) || 'F').toUpperCase()
+                        });
+
+                        const targetCals = friendGoals.cals || 2000;
+                        const pct = Math.min(100, (todayCals / targetCals) * 100);
+                        const barColor = pct > 100 ? 'bg-red-500' : 'bg-blue-500';
+
+                        feedHTML += `
+                            <div class="bg-white dark:bg-gray-900 p-3 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 flex items-center gap-4 cursor-pointer active:scale-[0.98] transition-transform" onclick="openFriendModal('${friend.uid}', '${friend.username}')">
+                                <div class="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center font-bold text-gray-600 dark:text-gray-300 shrink-0 uppercase">${(friend.username.charAt(0) || 'F')}</div>
+                                <div class="flex-1 min-w-0">
+                                    <h4 class="font-bold text-gray-900 dark:text-white truncate text-sm mb-1">@${friend.username}</h4>
+                                    <div class="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-1.5">
+                                        <div class="${barColor} h-full rounded-full transition-all duration-500" style="width: ${pct}%"></div>
+                                    </div>
+                                </div>
+                                <div class="shrink-0 text-right w-16">
+                                    <div class="font-black text-gray-900 dark:text-white leading-tight">${Math.round(todayCals)}</div>
+                                    <div class="text-[9px] text-gray-400 font-bold uppercase">/ ${targetCals}</div>
                                 </div>
                             </div>
-                            <div class="shrink-0 text-right w-16">
-                                <div class="font-black text-gray-900 dark:text-white leading-tight">${Math.round(todayCals)}</div>
-                                <div class="text-[9px] text-gray-400 font-bold uppercase">/ ${friendGoals.cals}</div>
+                        `;
+                    });
+
+                    if (list) list.innerHTML = feedHTML || '<div class="text-center text-sm text-gray-400 py-4">No data available.</div>';
+                }
+
+                // 2. Sort leaderboard by streak descending
+                leaderboardData.sort((a,b) => b.streak - a.streak);
+
+                // 3. Render top horizontal snap-scroll leaderboard cards
+                if (leaderboardTrack) {
+                    leaderboardTrack.innerHTML = leaderboardData.map((item, index) => {
+                        const rank = index + 1;
+                        let rankBadge = `#${rank}`;
+
+                        if (rank === 1) rankBadge = '🥇 1st';
+                        else if (rank === 2) rankBadge = '🥈 2nd';
+                        else if (rank === 3) rankBadge = '🥉 3rd';
+
+                        const borderStyle = item.isMe 
+                            ? 'bg-blue-600 text-white border-blue-500 shadow-md shadow-blue-500/20' 
+                            : 'bg-white dark:bg-gray-900 text-gray-900 dark:text-white border-gray-100 dark:border-gray-800';
+
+                        const subText = item.isMe ? 'You' : `@${item.username}`;
+                        const clickAttr = item.isMe ? '' : `onclick="openFriendModal('${item.uid}', '${item.username}')"`;
+
+                        return `
+                            <div ${clickAttr} class="snap-start shrink-0 w-36 ${borderStyle} p-3.5 rounded-2xl border flex flex-col justify-between relative cursor-pointer active:scale-95 transition-transform">
+                                <div class="flex justify-between items-center mb-2">
+                                    <span class="text-[10px] font-black uppercase tracking-wider ${item.isMe ? 'bg-white/20 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300'} px-2 py-0.5 rounded-full">${rankBadge}</span>
+                                    <i class="ph-fill ph-fire ${item.streak > 0 ? (item.isMe ? 'text-amber-300' : 'text-orange-500') : 'text-gray-300 dark:text-gray-700'} text-lg"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-bold text-xs truncate ${item.isMe ? 'text-white' : 'text-gray-900 dark:text-white'}">${subText}</h4>
+                                    <div class="text-2xl font-black ${item.isMe ? 'text-amber-300' : 'text-orange-500'} leading-none my-1">${item.streak} <span class="text-xs font-normal ${item.isMe ? 'text-blue-100' : 'text-gray-400'}">Days</span></div>
+                                </div>
+                                <p class="text-[9px] ${item.isMe ? 'text-blue-100' : 'text-gray-400'} font-medium truncate">${item.streak > 0 ? 'Active Streak 🔥' : 'No Active Streak'}</p>
                             </div>
-                        </div>
-                    `;
-                });
-
-                list.innerHTML = feedHTML || '<div class="text-center text-sm text-gray-400 py-4">No data available.</div>';
-            }
-
-            // Sort leaderboard by streak descending
-            leaderboardData.sort((a,b) => b.streak - a.streak);
-
-            // Render single top horizontal snap-scroll leaderboard track
-            if (leaderboardTrack) {
-                leaderboardTrack.innerHTML = leaderboardData.map((item, index) => {
-                    const rank = index + 1;
-                    let rankBadge = `#${rank}`;
-
-                    if (rank === 1) rankBadge = '🥇 1st';
-                    else if (rank === 2) rankBadge = '🥈 2nd';
-                    else if (rank === 3) rankBadge = '🥉 3rd';
-
-                    const borderStyle = item.isMe 
-                        ? 'bg-blue-600 text-white border-blue-500 shadow-md shadow-blue-500/20' 
-                        : 'bg-white dark:bg-gray-900 text-gray-900 dark:text-white border-gray-100 dark:border-gray-800';
-
-                    const subText = item.isMe ? 'You' : `@${item.username}`;
-                    const clickAttr = item.isMe ? '' : `onclick="openFriendModal('${item.uid}', '${item.username}')"`;
-
-                    return `
-                        <div ${clickAttr} class="snap-start shrink-0 w-36 ${borderStyle} p-3.5 rounded-2xl border flex flex-col justify-between relative cursor-pointer active:scale-95 transition-transform">
-                            <div class="flex justify-between items-center mb-2">
-                                <span class="text-[10px] font-black uppercase tracking-wider ${item.isMe ? 'bg-white/20 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300'} px-2 py-0.5 rounded-full">${rankBadge}</span>
-                                <i class="ph-fill ph-fire ${item.streak > 0 ? (item.isMe ? 'text-amber-300' : 'text-orange-500') : 'text-gray-300 dark:text-gray-700'} text-lg"></i>
-                            </div>
-                            <div>
-                                <h4 class="font-bold text-xs truncate ${item.isMe ? 'text-white' : 'text-gray-900 dark:text-white'}">${subText}</h4>
-                                <div class="text-2xl font-black ${item.isMe ? 'text-amber-300' : 'text-orange-500'} leading-none my-1">${item.streak} <span class="text-xs font-normal ${item.isMe ? 'text-blue-100' : 'text-gray-400'}">Days</span></div>
-                            </div>
-                            <p class="text-[9px] ${item.isMe ? 'text-blue-100' : 'text-gray-400'} font-medium truncate">${item.streak > 0 ? 'Active Streak 🔥' : 'No Active Streak'}</p>
-                        </div>
-                    `;
-                }).join('');
+                        `;
+                    }).join('');
+                }
+            } catch (err) {
+                console.error("Error in renderFriendsFeed:", err);
             }
         }
 
